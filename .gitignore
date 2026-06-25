@@ -1,0 +1,14 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.turbo/
+.changeset/*.md
+coverage/
+.DS_Store
+*.log
+.env
+.env.*
+# never commit keys
+*.key
+id.json
+*-keypair.json
