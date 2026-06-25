@@ -7,7 +7,14 @@ The developer toolkit for building on the **Circuit** decentralized-LLM ecosyste
 > **Build autonomous agents that think, sense, and act on decentralized infrastructure — paid in CIRC,
 > with funds that can't be stolen.**
 
-**Status:** 🟡 spec / pre-implementation. The design lives in **[SDK.md](./SDK.md)** — read it first.
+**Status:** 🟢 Phase 0 built (`@circuit/x402` + `@circuit/core`); the rest is spec. The design lives
+in **[SDK.md](./SDK.md)** — read it first.
+
+```bash
+npm install        # dev deps (typescript, @types/node)
+npm test           # 31 tests, zero-transpile (Node 22 strips TS types natively)
+npm run typecheck  # tsc --noEmit, both packages
+```
 
 ## Why
 
@@ -20,8 +27,8 @@ The developer toolkit for building on the **Circuit** decentralized-LLM ecosyste
 
 | Package | What | Status |
 |---|---|---|
-| `@circuit/x402` | the payment spine — pay any x402 endpoint in CIRC | extract |
-| `@circuit/core` | http · config (DI) · ed25519 identity · types | extract |
+| `@circuit/x402` | the payment spine — pay any x402 endpoint in CIRC; verify on-chain | ✅ built |
+| `@circuit/core` | http · config (DI) · ed25519 identity · types | ✅ built |
 | `@circuit/inference` | OpenAI-compatible client for the DLLM mesh | extract |
 | `@circuit/data` | typed client for 21+ market/on-chain data endpoints | wrap |
 | `@circuit/wallet` | SOL/CIRC balances, transfers, Jupiter swaps | extract |
