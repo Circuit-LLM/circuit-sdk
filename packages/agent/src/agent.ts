@@ -27,6 +27,7 @@ import {
   type Position,
 } from './types.ts';
 import { type Custody, MockCustody, SignerCustody, type SellOpts } from './custody.ts';
+import { evaluateRule, type Evidence, type Rule, type RuleInputs, type VerifiedIntent } from '@circuit/attest';
 
 /** The slice of fs the agent uses — injectable for tests. */
 export interface FsLike {
@@ -47,6 +48,11 @@ export interface AgentOptions {
   custody?: Custody;
   /** Local policy for MockCustody when there's no signer. */
   policy?: Partial<Policy>;
+  /** Verified-intent mode (docs/VERIFIED_INTENTS.md): the owner-committed decision rule, the
+   *  producer keys the gate trusts, and the evidence freshness window. Enables this.verifiedTrade(). */
+  rule?: Rule;
+  acceptedKeys?: Record<string, 'data' | 'inference'>;
+  evidenceMaxAgeMs?: number;
   fs?: FsLike;
   now?: () => number;
   /** Process-exit hook (tests inject a no-op). */
@@ -73,6 +79,8 @@ export function resolveContext(opts: Pick<AgentOptions, 'context' | 'env' | 'nam
 export abstract class CircuitAgent {
   readonly ctx: AgentContext;
   readonly custody: Custody;
+  /** Owner-committed decision rule (verified-intent mode); enables verifiedTrade(). */
+  readonly rule?: Rule;
 
   /** Strategy-owned mutable state surfaced in the heartbeat. */
   protected config: Record<string, unknown> = {};
@@ -111,7 +119,14 @@ export abstract class CircuitAgent {
             address: this.ctx.address,
             paper: this.ctx.paper,
           })
-        : new MockCustody({ address: this.ctx.address, policy: opts.policy }));
+        : new MockCustody({
+            address: this.ctx.address,
+            policy: opts.policy,
+            rule: opts.rule,
+            acceptedKeys: opts.acceptedKeys,
+            evidenceMaxAgeMs: opts.evidenceMaxAgeMs,
+          }));
+    this.rule = opts.rule;
     this.logFile = join(this.ctx.dataDir, 'agent.log');
     this.hbFile = join(this.ctx.dataDir, 'heartbeat.json');
     this.configFile = join(this.ctx.dataDir, 'config.json');
@@ -171,6 +186,23 @@ export abstract class CircuitAgent {
   /** Submit a raw intent. */
   intent(i: Intent): Promise<IntentResult> {
     return this.custody.intent(i);
+  }
+
+  /** Verified-intent trade (docs/VERIFIED_INTENTS.md). Evaluate the owner-committed rule on
+   *  AUTHENTICATED inputs; if it fires, submit the trade + evidence so the signer re-derives
+   *  and signs it. Returns null when the rule produces no trade (no signal). The honest agent
+   *  path — the signer rejects anything the rule + inputs don't justify, so even a tampered
+   *  host can't get a forged trade signed. */
+  async verifiedTrade(inputs: RuleInputs, evidence: Evidence[]): Promise<IntentResult | null> {
+    if (!this.rule) throw new Error('verifiedTrade requires a committed rule (set options.rule)');
+    const intent = evaluateRule(this.rule, inputs);
+    if (!intent) return null; // no signal — nothing to trade
+    const vi: VerifiedIntent = { intent, rule: this.rule.id, inputs, evidence };
+    const r = this.custody.verifiedIntent
+      ? await this.custody.verifiedIntent(vi)
+      : await this.custody.intent(intent as Intent);
+    if (r.ok) this.signedTrades++;
+    return r;
   }
 
   /** Pre-wired inference client. Pass `{ wallet }` (an owner-funded PAYMENT wallet,

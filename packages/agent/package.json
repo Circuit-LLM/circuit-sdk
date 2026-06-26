@@ -20,7 +20,8 @@
   "dependencies": {
     "@circuit/core": "0.0.0",
     "@circuit/inference": "0.0.0",
-    "@circuit/data": "0.0.0"
+    "@circuit/data": "0.0.0",
+    "@circuit/attest": "0.0.0"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

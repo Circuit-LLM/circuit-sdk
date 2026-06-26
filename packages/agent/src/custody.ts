@@ -13,6 +13,7 @@ import {
   type IntentResult,
   type Policy,
 } from './types.ts';
+import { decisionGate, type Rule, type VerifiedIntent } from '@circuit/attest';
 
 export interface SellOpts {
   /** SOL notional (paper sells). */
@@ -30,6 +31,11 @@ export interface Custody {
   intent(intent: Intent): Promise<IntentResult>;
   buy(token: string, sizeSol: number, opts?: Partial<Intent>): Promise<IntentResult>;
   sell(token: string, opts?: SellOpts): Promise<IntentResult>;
+  /** Verified-intent path (docs/VERIFIED_INTENTS.md): submit a trade + the authenticated
+   *  evidence + the rule that justifies it. The signer (or MockCustody) re-runs the decision
+   *  gate and signs only if the inputs + rule actually produce this trade. Optional — present
+   *  when the agent runs in verified mode. */
+  verifiedIntent?(vi: VerifiedIntent): Promise<IntentResult>;
 }
 
 // ── off-box signer ──────────────────────────────────────────────────────────
@@ -89,6 +95,29 @@ export class SignerCustody implements Custody {
   sell(token: string, opts: SellOpts = {}): Promise<IntentResult> {
     return this.intent({ kind: 'sell', token, ...opts });
   }
+
+  async verifiedIntent(vi: VerifiedIntent): Promise<IntentResult> {
+    try {
+      const res = await this.fetchImpl(`${this.base}/v1/agents/${this.agentId}/intent`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          epoch: this.epoch,
+          token: this.session,
+          intent: vi.intent,
+          rule: vi.rule,
+          inputs: vi.inputs,
+          evidence: vi.evidence,
+        }),
+        signal: AbortSignal.timeout(this.timeoutMs),
+      });
+      const j = (await res.json().catch(() => ({}))) as Partial<IntentResult>;
+      if (res.ok) return { ...j, ok: true, code: j.code ?? 'verified' };
+      return { ok: false, code: j.code ?? `http-${res.status}`, error: j.error };
+    } catch (e) {
+      return { ok: false, code: 'signer-unreachable', error: (e as Error).message };
+    }
+  }
 }
 
 // ── local mock (paper) ──────────────────────────────────────────────────────
@@ -100,6 +129,11 @@ export interface MockCustodyOptions {
   address?: string | null;
   policy?: Partial<Policy>;
   now?: () => number;
+  /** Verified-intent mode: the committed decision rule + the producer keys the gate trusts.
+   *  When set, verifiedIntent() re-runs the same decision gate the real signer runs. */
+  rule?: Rule;
+  acceptedKeys?: Record<string, 'data' | 'inference'>;
+  evidenceMaxAgeMs?: number;
 }
 
 /** Paper trading with the signer's policy semantics — same rejection codes, so an
@@ -113,11 +147,31 @@ export class MockCustody implements Custody {
   private lastTradeTs = -Infinity; // "no prior trade" → first trade never hits cooldown
   private day = '';
   private readonly now: () => number;
+  private readonly rule?: Rule;
+  private readonly acceptedKeys: Record<string, 'data' | 'inference'>;
+  private readonly evidenceMaxAgeMs?: number;
 
   constructor(o: MockCustodyOptions = {}) {
     this.policy = normalizePolicy({ ...DEFAULT_POLICY, ...o.policy, paper: true });
     this.address = o.address ?? null;
     this.now = o.now ?? Date.now;
+    this.rule = o.rule;
+    this.acceptedKeys = o.acceptedKeys ?? {};
+    this.evidenceMaxAgeMs = o.evidenceMaxAgeMs;
+  }
+
+  /** Re-run the SAME decision gate the real signer runs (so dev == cloud), then apply
+   *  the policy caps. Rejects a forged trade with the gate's code. */
+  async verifiedIntent(vi: VerifiedIntent): Promise<IntentResult> {
+    if (!this.rule) return reject('no-rule', 'MockCustody has no committed rule');
+    const g = decisionGate(vi, {
+      rule: this.rule,
+      acceptedKeys: this.acceptedKeys,
+      now: this.now,
+      maxAgeMs: this.evidenceMaxAgeMs,
+    });
+    if (!g.ok) return { ok: false, code: g.code };
+    return this.intent(vi.intent as Intent); // verified → still subject to policy caps
   }
 
   async intent(intent: Intent): Promise<IntentResult> {
