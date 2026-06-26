@@ -12,3 +12,9 @@ coverage/
 *.key
 id.json
 *-keypair.json
+
+# python (circuit-py)
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/

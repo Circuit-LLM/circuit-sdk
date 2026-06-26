@@ -247,7 +247,7 @@ client on the read path.
 Re-exports the others so `import { Inference, Data, CircuitAgent } from '@circuit/sdk'` works for the
 batteries-included case.
 
-### 4.10 `circuit-py` — Python consume client  ·  status: BUILD
+### 4.10 `circuit-py` — Python consume client  ·  status: ✅ BUILT (`circuit-py/`)
 
 A thin Python package for the consume side only (**inference + data + x402**), where data/ML consumers
 live. Mirrors the TS client surface; not a full port (no agent runtime, no wallet ops beyond paying).

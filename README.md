@@ -83,7 +83,7 @@ off-box and the only verbs are `buy`/`sell` within policy. `npx`-able scaffold v
 | `@circuit/node` | join/manage a mesh node from code (control plane + registry) | ✅ built |
 | `@circuit/onchain` | CIRC balance · StakePoint stake verification (pure RPC) | ✅ built |
 | `@circuit/sdk` | meta-package (re-exports) | ✅ built |
-| `circuit-py` | Python consume client (inference + data + x402) | build |
+| `circuit-py` | Python consume client (inference + data + x402) | ✅ built ([`circuit-py/`](./circuit-py)) |
 
 ## Roadmap
 

@@ -1,0 +1,18 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "circuit-py"
+version = "0.0.0"
+description = "Circuit SDK (Python) — x402-paid decentralized inference + data from the Circuit ecosystem. Pay per call in CIRC; no API keys."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "UNLICENSED"
+dependencies = []  # stdlib-only core; bring your own PaymentWallet (e.g. solders) to pay
+
+[project.optional-dependencies]
+dev = []
+
+[tool.hatch.build.targets.wheel]
+packages = ["circuit"]
