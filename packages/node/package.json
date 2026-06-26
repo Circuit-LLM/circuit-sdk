@@ -1,0 +1,17 @@
+{
+  "name": "@circuit/node",
+  "version": "0.0.0",
+  "description": "Circuit SDK node — join/manage a mesh node from code: the inference-mesh control plane (register/ready/heartbeat) + the public node registry (announce/ping). The heavy GPU serving stays in the node image.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "node --experimental-strip-types --test test/*.test.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@circuit/core": "0.0.0"
+  }
+}

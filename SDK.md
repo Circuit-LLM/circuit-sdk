@@ -281,7 +281,7 @@ live. Mirrors the TS client surface; not a full port (no agent runtime, no walle
 | **0 — spine** ✅ | `@circuit/x402` + `@circuit/core` | **DONE** — extracted, DI-cleaned, 31 tests green (see `packages/`) |
 | **1 — consume SDK** ✅ | `@circuit/inference` + `@circuit/data` + `@circuit/wallet` + `@circuit/sdk` meta | **DONE** — extracted onto the spine; 50 tests green (`circuit-py` deferred) |
 | **2 — flagship** ✅ | `@circuit/agent` (base class · custody client · `MockCustody` · scaffold) | **DONE** — `CircuitAgent` over off-box custody; 64 tests green |
-| **3 — contribute** | `@circuit/node` + `@circuit/onchain` | "earn by contributing", on-chain reads |
+| **3 — contribute** ✅ | `@circuit/node` + `@circuit/onchain` | **DONE** — mesh control + node registry + StakePoint/CIRC reads; 81 tests green |
 
 **MVP (end of Phase 1):** `npm i @circuit/sdk`, load a wallet, call `inference.chat()` and
 `data.tokenPrice()` with automatic CIRC payment — a working, documented quickstart.

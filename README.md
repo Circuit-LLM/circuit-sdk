@@ -7,12 +7,12 @@ The developer toolkit for building on the **Circuit** decentralized-LLM ecosyste
 > **Build autonomous agents that think, sense, and act on decentralized infrastructure — paid in CIRC,
 > with funds that can't be stolen.**
 
-**Status:** 🟢 Phases 0–2 built — `@circuit/{core,x402,inference,data,wallet,agent,sdk}`. The consume
-MVP **and** the agent flagship are live. The design lives in **[SDK.md](./SDK.md)**.
+**Status:** 🟢 Phases 0–3 built — all nine packages (`core, x402, inference, data, wallet, agent, node,
+onchain, sdk`). Consume, agents, and the contributor side are live. The design lives in **[SDK.md](./SDK.md)**.
 
 ```bash
 npm install        # workspace links + @solana/web3.js (wallet)
-npm test           # 64 tests, zero-transpile (Node 22 strips TS types natively)
+npm test           # 81 tests, zero-transpile (Node 22 strips TS types natively)
 npm run typecheck  # tsc --noEmit, all packages
 ```
 
@@ -72,8 +72,8 @@ off-box and the only verbs are `buy`/`sell` within policy. `npx`-able scaffold v
 | `@circuit/data` | typed client for 21+ market/on-chain data endpoints | ✅ built |
 | `@circuit/wallet` | SOL/CIRC balances, transfers, Jupiter swaps | ✅ built |
 | `@circuit/agent` | **flagship** — `CircuitAgent` base class + off-box custody + local mock + scaffold | ✅ built |
-| `@circuit/node` | join/manage a mesh node from code | extract |
-| `@circuit/onchain` | CIRC · StakePoint · mesh_registry reads | extract |
+| `@circuit/node` | join/manage a mesh node from code (control plane + registry) | ✅ built |
+| `@circuit/onchain` | CIRC balance · StakePoint stake verification (pure RPC) | ✅ built |
 | `@circuit/sdk` | meta-package (re-exports) | ✅ built |
 | `circuit-py` | Python consume client (inference + data + x402) | build |
 

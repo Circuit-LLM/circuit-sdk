@@ -60,6 +60,8 @@ export interface SignedHeaders {
   'X-Node-Signature': string;
   'X-Node-Timestamp': string;
   'Content-Type': string;
+  // index signature → directly usable as fetch HeadersInit
+  [key: string]: string;
 }
 
 /** Sign a request body; returns the auth headers to attach. `now` is injectable for tests. */

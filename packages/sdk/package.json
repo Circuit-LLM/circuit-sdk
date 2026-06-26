@@ -17,6 +17,8 @@
     "@circuit/inference": "0.0.0",
     "@circuit/data": "0.0.0",
     "@circuit/wallet": "0.0.0",
-    "@circuit/agent": "0.0.0"
+    "@circuit/agent": "0.0.0",
+    "@circuit/node": "0.0.0",
+    "@circuit/onchain": "0.0.0"
   }
 }
