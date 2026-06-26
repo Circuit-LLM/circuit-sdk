@@ -40,7 +40,10 @@ What makes that non-generic (vs. "OpenAI + a VPS + a hot wallet"):
    subscriptions. A Solana wallet *is* the identity and the meter.
 2. **Decentralized inference** — a contributor-owned 72B mesh (`circuit-dllm`), not a single vendor.
 3. **Non-custodial hosted agents** — your strategy runs on someone else's CPU, but the signing key is
-   off-box; the worst a malicious host can do is an in-policy `buy`/`sell`, never a drain.
+   off-box; a host can never drain the wallet (`buy`/`sell`-only). With **Verified Intents** (`@circuit/attest`)
+   the signer re-runs your committed rule on authenticated inputs and signs only the matching trade, so a
+   host can't forge a trade either — for checkable strategies, on any CPU. Opaque strategies use a TEE
+   (Sealed Agents) or caps + deterrence.
 4. **Earn by contributing** — the same SDK that consumes can also *join* the mesh (GPU/CPU) and be paid.
 
 ## 2. Audiences
@@ -209,8 +212,13 @@ The base class **owns**:
   `@circuit/data` so an agent thinks + senses out of the box.
 
 Plus, critically:
+- **Verified-intent mode** — pass a committed `rule` + the producer keys you trust and call
+  `verifiedTrade(inputs, evidence)`: the agent evaluates the rule locally and submits
+  `{ intent, rule, inputs, evidence }`, which the off-box signer re-derives before signing (so a hostile
+  host can't forge a trade). Built on `@circuit/attest` (§4.7); guide in `docs/verified-intents.md`.
 - **`MockCustody` adapter** — run the exact same agent locally in paper mode with no live signer, for
-  dev + CI. `new DipBot({ custody: 'mock' }).run()`.
+  dev + CI. Runs the *same decision gate* as the real signer, so verified agents behave identically in
+  dev and on the cloud. `new DipBot({ custody: 'mock' }).run()`.
 - **Scaffold** — `npx @circuit/agent new my-bot` → a typed starter project (strategy stub, config
   schema, local-run script, deploy notes).
 - **Types** — `AgentConfig`, `AgentSpec`, `Policy` (`maxNotionalSol`, `maxDailySol`, `cooldownMs`,
@@ -226,7 +234,25 @@ compute + inference + data). The base class makes custody opt-in.
 > `@circuit/agent-cloud` client can wrap the control-plane management API if devs want to deploy
 > programmatically.
 
-### 4.7 `@circuit/node` — contributor side  ·  status: EXTRACT (partial)
+### 4.7 `@circuit/attest` — verified intents  ·  status: BUILT
+
+The trust keystone for hosted agents (`docs/verified-intents.md`). Zero deps beyond `@circuit/core`:
+
+- **sign/verify** — canonical Ed25519 over `stableStringify` (raw-hex keys); the same scheme the
+  data-API and inference gateway sign responses with, and the off-box signer verifies.
+- **evidence** — `SignedQuote` (first-party data), `InferenceReceipt` (signed AI verdict), `ZkTlsProof`
+  (third-party); `verifyEvidence` checks signature + freshness + replay against trusted keys/notaries.
+- **rule DSL + evaluator** — `Rule = { id, when[], then, requires[] }`; `evaluateRule(rule, inputs)` is a
+  pure function returning the `Intent` or `null` — the *same* function the signer re-runs.
+- **decision gate** — `decisionGate(verifiedIntent, opts)`: verify evidence → bind inputs → re-run rule →
+  must equal the intent, else reject (`decision-unjustified` / `evidence-*` / `input-mismatch`).
+
+`@circuit/agent` consumes it for `verifiedTrade`; `@circuit/data`/`@circuit/inference` consume it to
+verify signed responses; `circuit-agent-cloud`'s signer ships a byte-identical plain-JS port that enforces
+the gate before signing. The property — *a host can't get a trade signed that the rule + authenticated
+inputs don't justify* — is proven by the gate test suite.
+
+### 4.8 `@circuit/node` — contributor side  ·  status: EXTRACT (partial)
 
 Programmatically join/manage a mesh node. Ports the reusable bits of `circuit-node-client`:
 `announce`/`ping`/`deregister` (`lib/registry.js`), identity signing, `sync` (poll+cache), and the
@@ -235,19 +261,19 @@ mesh control-plane `/register · /ready · /heartbeat · /drain · /topology` pr
 stays in the node client/image; the SDK exposes the *control* surface for "spin up / manage a node from
 code."
 
-### 4.8 `@circuit/onchain` — CIRC · StakePoint · mesh_registry  ·  status: EXTRACT
+### 4.9 `@circuit/onchain` — CIRC · StakePoint · mesh_registry  ·  status: EXTRACT
 
 Pure-RPC reads (the project's convention — `getProgramAccounts` + memcmp + discriminator), ported from
 `circuit-node-client/lib/stakepoint.js`: `verifyStake(wallet, pool, minAmount)`, `getStakePositions`,
 CIRC balance helpers, and (later) readers for the `mesh_registry` Anchor program. No heavy Anchor
 client on the read path.
 
-### 4.9 `@circuit/sdk` — meta-package  ·  status: BUILD (trivial)
+### 4.10 `@circuit/sdk` — meta-package  ·  status: BUILD (trivial)
 
 Re-exports the others so `import { Inference, Data, CircuitAgent } from '@circuit/sdk'` works for the
 batteries-included case.
 
-### 4.10 `circuit-py` — Python consume client  ·  status: ✅ BUILT (`circuit-py/`)
+### 4.11 `circuit-py` — Python consume client  ·  status: ✅ BUILT (`circuit-py/`)
 
 A thin Python package for the consume side only (**inference + data + x402**), where data/ML consumers
 live. Mirrors the TS client surface; not a full port (no agent runtime, no wallet ops beyond paying).

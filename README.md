@@ -112,7 +112,8 @@ One npm workspace of scoped packages (`@circuit/sdk` re-exports them all), plus 
 | **`@circuit/inference`** | OpenAI-compatible client for the DLLM mesh (`chat`, `chatStream`, `listModels`). | core · x402 |
 | **`@circuit/data`** | Typed client for 20+ Circuit Data API endpoints (free + paid). | core · x402 |
 | **`@circuit/wallet`** | SOL/CIRC balances, transfers, Jupiter swaps. Implements `PaymentWallet`. | core · x402 · solana |
-| **`@circuit/agent`** | **The agent runtime** — `CircuitAgent` base class + off-box custody + local mock + scaffold. | core · inference · data |
+| **`@circuit/agent`** | **The agent runtime** — `CircuitAgent` base class + off-box custody + verified-intent mode + local mock + scaffold. | core · inference · data · attest |
+| **`@circuit/attest`** | **[Verified Intents](docs/verified-intents.md)** — sign/verify evidence, the rule DSL + evaluator, and the signer's decision gate. **Zero deps** (beyond core). | core |
 | **`@circuit/node`** | Join/manage a mesh node from code (control plane + public registry). | core |
 | **`@circuit/onchain`** | CIRC balance + StakePoint stake verification via pure JSON-RPC. **No web3.js.** | core |
 | **`@circuit/sdk`** | Batteries-included meta-package — re-exports everything. | all |
@@ -143,7 +144,7 @@ class DipBot extends CircuitAgent {
 new DipBot().run();
 ```
 
-**Custody is off-box.** The agent holds only a scoped session token + epoch — never the key. `this.buy`/`this.sell` go to the signer, which holds the wallet, enforces `buy`/`sell`-only policy (max per-trade, max per-day, cooldown, allow/deny lists), and fences out a crashed instance with a monotonic epoch. **The worst a malicious host can do is an in-policy swap — never a drain.**
+**Custody is off-box.** The agent holds only a scoped session token + epoch — never the key. `this.buy`/`this.sell` go to the signer, which holds the wallet, enforces `buy`/`sell`-only policy (max per-trade, max per-day, cooldown, allow/deny lists), and fences out a crashed instance with a monotonic epoch.
 
 Run it locally and the same code **paper-trades with identical policy semantics** (no signer needed); deploy it and it runs on the CPU mesh. Scaffold a project:
 
@@ -151,7 +152,15 @@ Run it locally and the same code **paper-trades with identical policy semantics*
 npx circuit-agent new my-bot
 ```
 
-Full guide — custody, lifecycle, the inference-payment vs. trading-custody distinction: **[docs/agents.md](docs/agents.md)**.
+### Trust & safety
+
+Your agent runs on a stranger's CPU, so be precise about the boundary:
+
+- **No drain, always.** The signer's only verbs are `buy`/`sell` — there is no transfer/withdraw, so a hostile host can never move funds out. The worst it can otherwise do is an *in-policy* swap.
+- **No forgery — for checkable strategies — via [Verified Intents](docs/verified-intents.md).** Commit a decision rule; the signer signs a trade only if your rule, re-run on *authenticated* inputs (signed data / inference receipts / zkTLS), produces exactly that trade. Pure software, any CPU. Closes "a host picks its own in-policy trade."
+- **Opaque strategies** the signer can't re-check fall back to conservative caps + deterrence, or a TEE — **[Sealed Agents](https://github.com/Circuit-LLM/circuit-agent-cloud/blob/main/docs/SEALED_AGENTS.md)** (special hardware, any strategy).
+
+Full guide — custody, lifecycle, the host can/can't table, the inference-payment vs. trading-custody distinction: **[docs/agents.md](docs/agents.md)**.
 
 ---
 

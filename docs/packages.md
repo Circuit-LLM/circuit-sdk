@@ -10,7 +10,8 @@ batteries-included **`@circuit/sdk`** to get everything, or depend on exactly th
 | [`@circuit/inference`](#circuitinference) | OpenAI-compatible DLLM client |
 | [`@circuit/data`](#circuitdata) | typed Circuit Data API client |
 | [`@circuit/wallet`](#circuitwallet) | SOL/CIRC balances, transfers, swaps |
-| [`@circuit/agent`](#circuitagent) | the `CircuitAgent` runtime (off-box custody) |
+| [`@circuit/agent`](#circuitagent) | the `CircuitAgent` runtime (off-box custody + verified intents) |
+| [`@circuit/attest`](#circuitattest) | verified intents — sign/verify evidence, rule DSL, decision gate |
 | [`@circuit/node`](#circuitnode) | join/manage a mesh node from code |
 | [`@circuit/onchain`](#circuitonchain) | StakePoint stake + CIRC balance (pure RPC) |
 | [`@circuit/sdk`](#circuitsdk) | meta-package — re-exports all of the above |
@@ -158,11 +159,12 @@ heartbeat, logs, and lifecycle. Full guide: [agents.md](./agents.md).
 
 ```ts
 abstract class CircuitAgent {
-  constructor(opts?: AgentOptions);
+  constructor(opts?: AgentOptions);   // opts.rule + opts.acceptedKeys → verified-intent mode
   // override:
   setup(): void|Promise<void>;  abstract tick(): void|Promise<void>;  onDrain(): void|Promise<void>;  checkpoint(): void|Promise<void>;
   // use:
   buy(token, sizeSol, opts?): Promise<IntentResult>;   sell(token, opts?): Promise<IntentResult>;
+  verifiedTrade(inputs, evidence): Promise<IntentResult|null>;   // rule-derived, host-can't-forge
   inference(opts?): Inference;   data(opts?): Data;   readConfig<T>(): T;   log(msg): void;
   // lifecycle:
   start(); runTick(); stop(reason?); run();
@@ -170,15 +172,47 @@ abstract class CircuitAgent {
 }
 
 // custody
-interface Custody { intent(i); buy(token, sizeSol, opts?); sell(token, opts?); kind; address; paper; }
+interface Custody { intent(i); buy(token, sizeSol, opts?); sell(token, opts?); verifiedIntent?(vi); kind; address; paper; }
 class SignerCustody implements Custody {}     // the real off-box signer client
-class MockCustody implements Custody {}        // local paper trading, same policy semantics
+class MockCustody implements Custody {}        // local paper trading, same policy + gate semantics
 const DEFAULT_POLICY; normalizePolicy(p?);
 
 // scaffold
 scaffold(name): Record<string,string>;  writeScaffold(name, dir): Promise<string[]>;
 // + bin:  circuit-agent new <name>
 ```
+
+---
+
+## `@circuit/attest`
+
+The **verified-intent** keystone — how the off-box signer is sure a trade is genuinely your strategy's,
+not the host's. Zero deps beyond `@circuit/core`. Guide: [verified-intents.md](./verified-intents.md).
+
+```ts
+// sign / verify (canonical Ed25519 over stableStringify, raw-hex keys)
+generateAttestSigner(): AttestSigner;   attestSignerFromSeed(seedHex): AttestSigner;
+signPayload(signer, payload): string;   verifyPayload(pubkeyHex, payload, sigHex): boolean;
+
+// evidence — authenticated inputs the signer trusts
+signQuote(signer, { path, data, ts, nonce }): SignedQuote;                 // first-party data
+signInferenceReceipt(signer, { inputHash, outputHash, verdict, modelFp, ts, nonce }): InferenceReceipt;
+type Evidence = SignedQuote | InferenceReceipt | ZkTlsProof;
+verifyEvidence(ev, { acceptedKeys, acceptedNotaries?, maxAgeMs?, replay? }): EvidenceResult;
+
+// rule — a committed, re-runnable decision
+type Rule = { id; when: Condition[]; then: RuleThen; requires: string[] };
+evaluateRule(rule, inputs): Intent | null;          // pure; the SAME fn the signer re-runs
+sameIntent(a, b): boolean;   normalizeRule(rule): Rule;
+
+// the gate — verify evidence → bind inputs → re-run rule → must equal the intent
+decisionGate({ intent, rule, inputs, evidence }, { rule, acceptedKeys, ... }): GateResult;
+//   codes: verified | unknown-rule | evidence-* | input-mismatch | decision-unjustified
+```
+
+The producers (`circuit-data-api`, the inference gateway) sign with this scheme; the consumers
+(`@circuit/data.getSigned`, `@circuit/inference.chatVerified`) verify with it; the signer enforces
+`decisionGate` before signing. A byte-identical plain-JS port runs in `circuit-agent-cloud`.
 
 ---
 
