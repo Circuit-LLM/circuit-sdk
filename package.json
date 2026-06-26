@@ -12,11 +12,13 @@
     "node": ">=22"
   },
   "scripts": {
-    "test": "node --experimental-strip-types --test packages/*/test/*.test.ts",
-    "typecheck": "for p in core x402 inference data wallet agent node onchain sdk; do tsc -p packages/$p/tsconfig.json || exit 1; done"
+    "test": "node --experimental-strip-types --conditions=development --test packages/*/test/*.test.ts",
+    "typecheck": "for p in core x402 inference data wallet agent node onchain sdk; do tsc -p packages/$p/tsconfig.json || exit 1; done",
+    "build": "for p in core x402 inference data wallet agent node onchain sdk; do (cd packages/$p && npx tsup src/index.ts --format esm --dts --clean --out-dir dist) || exit 1; done"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
+    "tsup": "^8.5.1",
     "typescript": "^5.7.2"
   }
 }

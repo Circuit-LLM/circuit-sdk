@@ -269,7 +269,11 @@ live. Mirrors the TS client surface; not a full port (no agent runtime, no walle
 ## 6. Packaging, build, release
 
 - **Monorepo:** npm/pnpm workspaces, `packages/*`. TypeScript, ESM-first (matches `circuit-cli`).
-  Shared `tsconfig.base.json`; each package builds to `dist/` (esm + d.ts).
+  Shared `tsconfig.base.json`; each package builds to `dist/` (esm + d.ts) via **tsup** (✅ built).
+  **Dual-mode exports:** the `development` condition resolves cross-package imports to `src/*.ts` for
+  zero-build dev (Node 22 strip-types + tsc `customConditions`); the default condition serves the
+  compiled `dist/*.js` to consumers. `prepack` rebuilds dist on publish. `@circuit/agent` ships a
+  `circuit-agent` bin (`circuit-agent new <name>`). ✅
 - **Versioning:** changesets; packages versioned independently, `@circuit/sdk` pins compatible ranges.
 - **Publish:** private registry / GitHub Packages while closed; npm public at launch.
 - **CI:** typecheck + unit tests per package; the agent harness runs against `MockCustody`.

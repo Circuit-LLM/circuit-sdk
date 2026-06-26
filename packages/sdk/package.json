@@ -5,11 +5,17 @@
   "license": "UNLICENSED",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "development": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
   },
   "scripts": {
-    "test": "node --experimental-strip-types --test test/*.test.ts",
-    "typecheck": "tsc -p tsconfig.json"
+    "test": "node --experimental-strip-types --conditions=development --test test/*.test.ts",
+    "typecheck": "tsc -p tsconfig.json",
+    "build": "tsup src/index.ts --format esm --dts --clean --out-dir dist",
+    "prepack": "tsup src/index.ts --format esm --dts --clean --out-dir dist"
   },
   "dependencies": {
     "@circuit/core": "0.0.0",
@@ -20,5 +26,10 @@
     "@circuit/agent": "0.0.0",
     "@circuit/node": "0.0.0",
     "@circuit/onchain": "0.0.0"
-  }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ]
 }

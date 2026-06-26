@@ -14,7 +14,15 @@ onchain, sdk`). Consume, agents, and the contributor side are live. The design l
 npm install        # workspace links + @solana/web3.js (wallet)
 npm test           # 81 tests, zero-transpile (Node 22 strips TS types natively)
 npm run typecheck  # tsc --noEmit, all packages
+npm run build      # tsup → dist/*.js + .d.ts (for publishing)
 ```
+
+Dev resolves cross-package imports to `src/*.ts` (the `development` export condition → zero build).
+Published consumers get the compiled `dist/*.js`. Each package rebuilds `dist` on `prepack`, so
+`npm publish --workspaces` ships fresh JS + types.
+
+Scaffold a new agent project: `npx circuit-agent new my-bot` (or, in this repo,
+`node --experimental-strip-types --conditions=development packages/agent/bin/circuit-agent.ts new my-bot`).
 
 ### Quickstart (the MVP)
 
