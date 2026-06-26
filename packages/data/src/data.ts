@@ -4,6 +4,7 @@
 
 import { DEFAULT_CONFIG, type CircuitConfig } from '@circuit/core';
 import { X402Client, type PaymentWallet, type PaymentQuote } from '@circuit/x402';
+import { verifyEvidence, type SignedQuote } from '@circuit/attest';
 
 export interface DataOptions {
   x402?: X402Client;
@@ -57,6 +58,30 @@ export class Data {
     }
     const { data } = await this.x402.json<T>(`${this.base}${path}${qs}`, { headers: this.headers() });
     return data;
+  }
+
+  // ── verified intents (docs/verified-intents.md) ────────────────────────────
+  /** GET a path with first-party signing (`?signed=1`): the body comes back as a
+   *  SignedQuote envelope the off-box signer accepts as authenticated `data` evidence.
+   *  Pass `acceptedKeys` to verify the signature + freshness here too (throws on a bad
+   *  quote). The agent forwards the returned envelope as evidence in a verified intent. */
+  async getSigned(
+    path: string,
+    query?: Query,
+    opts: { acceptedKeys?: Record<string, 'data' | 'inference'>; maxAgeMs?: number } = {},
+  ): Promise<SignedQuote> {
+    const env = await this.get<SignedQuote>(path, { ...(query ?? {}), signed: '1' });
+    if (!env || env.kind !== 'signed-quote') throw new Error('data-api did not return a SignedQuote — is response signing enabled?');
+    if (opts.acceptedKeys) {
+      const r = verifyEvidence(env, { acceptedKeys: opts.acceptedKeys, maxAgeMs: opts.maxAgeMs });
+      if (!r.ok) throw new Error(`signed-quote failed verification: ${r.code}`);
+    }
+    return env;
+  }
+
+  /** The data-api signing public key (raw hex) to pin in `acceptedKeys`. */
+  async signingKey(): Promise<{ key: string; alg: string; kind: string }> {
+    return this.get('/.well-known/circuit-data-key');
   }
 
   // ── free ─────────────────────────────────────────────────────────────────

@@ -8,6 +8,7 @@ import {
   type PaymentWallet,
   type PaymentQuote,
 } from '@circuit/x402';
+import { verifyEvidence, type InferenceReceipt } from '@circuit/attest';
 
 export interface InferenceOptions {
   /** A pre-built payment client. If omitted, one is built from `wallet`. */
@@ -118,6 +119,51 @@ export class Inference {
       quote,
       raw: data,
     };
+  }
+
+  // ── verified intents (docs/verified-intents.md) ────────────────────────────
+  /** Non-streaming completion with a signed InferenceReceipt (`?signed=1`): proves the
+   *  mesh produced this output for this input. The agent forwards `receipt` as evidence so
+   *  the off-box signer trusts the AI's call (a short answer like "BUY" becomes `verdict`).
+   *  Pass `acceptedKeys` to verify the receipt here too (throws on a bad receipt). */
+  async chatVerified(
+    params: ChatParams,
+    opts: { acceptedKeys?: Record<string, 'data' | 'inference'>; maxAgeMs?: number } = {},
+  ): Promise<ChatResult & { receipt: InferenceReceipt }> {
+    const { data, paymentTx, quote } = await this.x402.json<{
+      choices?: Array<{ message?: { content?: string } }>;
+      usage?: Usage;
+      attestation?: InferenceReceipt;
+    }>(`${this.base}/chat/completions?signed=1`, {
+      method: 'POST',
+      headers: this.headers(),
+      body: this.body(params, false),
+      signal: params.signal ?? AbortSignal.timeout(params.timeoutMs ?? 120_000),
+    });
+    const receipt = data?.attestation;
+    if (!receipt || receipt.kind !== 'inference-receipt') throw new Error('gateway did not return an InferenceReceipt — is receipt signing enabled?');
+    if (opts.acceptedKeys) {
+      const r = verifyEvidence(receipt, { acceptedKeys: opts.acceptedKeys, maxAgeMs: opts.maxAgeMs });
+      if (!r.ok) throw new Error(`inference-receipt failed verification: ${r.code}`);
+    }
+    return {
+      content: data?.choices?.[0]?.message?.content?.trim() ?? '',
+      usage: data?.usage ?? null,
+      paymentTx,
+      quote,
+      raw: data,
+      receipt,
+    };
+  }
+
+  /** The inference signing public key (raw hex) to pin in `acceptedKeys`. */
+  async signingKey(): Promise<{ key: string; alg: string; kind: string }> {
+    const root = this.base.replace(/\/v1$/, '');
+    const { data } = await this.x402.json<{ key: string; alg: string; kind: string }>(
+      `${root}/.well-known/circuit-inference-key`,
+      { headers: this.headers() },
+    );
+    return data;
   }
 
   /** Streaming completion. Yields token deltas as they arrive; the generator's

@@ -18,6 +18,7 @@
     "prepack": "tsup src/index.ts --format esm --dts --clean --out-dir dist"
   },
   "dependencies": {
+    "@circuit/attest": "0.0.0",
     "@circuit/core": "0.0.0",
     "@circuit/x402": "0.0.0"
   },
