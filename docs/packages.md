@@ -153,7 +153,7 @@ Depends on `@solana/web3.js`, `@solana/spl-token`, `bs58` — the only "heavy" p
 
 ## `@circuit/agent`
 
-The flagship runtime. You extend `CircuitAgent`; the runtime owns env wiring, off-box custody, the
+The agent runtime. You extend `CircuitAgent`; the runtime owns env wiring, off-box custody, the
 heartbeat, logs, and lifecycle. Full guide: [agents.md](./agents.md).
 
 ```ts

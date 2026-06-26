@@ -15,7 +15,7 @@ This spec is grounded in the code that already exists (`circuit-cli`, `circuit-a
 ## 0. TL;DR
 
 - The SDK is **layered over Circuit's primitives**, not one library. The spine is **x402 pay-per-call**;
-  on top sit **inference**, **data**, **wallet**; the **flagship** is the **Agent SDK**.
+  on top sit **inference**, **data**, **wallet**; the **agent runtime** is the **Agent SDK**.
 - "Agents *or* everything?" is a false choice: **an agent composes everything** — it *thinks*
   (inference), *senses* (data), *acts* (custody), and *lives* somewhere (hosting), each action paid in
   CIRC. Lead with agents; ship the consume layer first because it's nearly free to extract.
@@ -70,7 +70,7 @@ inference     data      onchain      │                  │
    ▲           ▲          ▲          │                  │
    └─────┬─────┴────┬─────┘          │                  │
          │          │                │                  │
-     @circuit/agent ─────────────────┘                  │   (FLAGSHIP: composes inference+data+custody+wallet)
+     @circuit/agent ─────────────────┘                  │   (AGENT RUNTIME: composes inference+data+custody+wallet)
          ▲                                               │
    @circuit/node ──────────────────────────────────────┘   (contributor: join the mesh, serve, earn)
 
@@ -175,7 +175,7 @@ Stateless factory ported from `circuit-cli/services/{wallet,solana}.js` (CIRC is
 `@circuit/x402` to fund payments and by `@circuit/agent` for owner-side ops (never for agent signing —
 that's the off-box signer).
 
-### 4.6 `@circuit/agent` — the flagship  ·  status: BUILD
+### 4.6 `@circuit/agent` — the agent runtime  ·  status: BUILD
 
 Today an agent on `circuit-agent-cloud` must hand-wire the signer HTTP client, the session-token/epoch
 fence, `heartbeat.json`, log routing, and SIGTERM checkpointing (see `agentd/agentd.js`). The SDK
@@ -284,7 +284,7 @@ live. Mirrors the TS client surface; not a full port (no agent runtime, no walle
 |---|---|---|
 | **0 — spine** ✅ | `@circuit/x402` + `@circuit/core` | **DONE** — extracted, DI-cleaned, 31 tests green (see `packages/`) |
 | **1 — consume SDK** ✅ | `@circuit/inference` + `@circuit/data` + `@circuit/wallet` + `@circuit/sdk` meta | **DONE** — extracted onto the spine; 50 tests green (`circuit-py` deferred) |
-| **2 — flagship** ✅ | `@circuit/agent` (base class · custody client · `MockCustody` · scaffold) | **DONE** — `CircuitAgent` over off-box custody; 64 tests green |
+| **2 — agent runtime** ✅ | `@circuit/agent` (base class · custody client · `MockCustody` · scaffold) | **DONE** — `CircuitAgent` over off-box custody; 64 tests green |
 | **3 — contribute** ✅ | `@circuit/node` + `@circuit/onchain` | **DONE** — mesh control + node registry + StakePoint/CIRC reads; 81 tests green |
 
 **MVP (end of Phase 1):** `npm i @circuit/sdk`, load a wallet, call `inference.chat()` and

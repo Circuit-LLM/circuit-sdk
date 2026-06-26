@@ -112,7 +112,7 @@ One npm workspace of scoped packages (`@circuit/sdk` re-exports them all), plus 
 | **`@circuit/inference`** | OpenAI-compatible client for the DLLM mesh (`chat`, `chatStream`, `listModels`). | core · x402 |
 | **`@circuit/data`** | Typed client for 20+ Circuit Data API endpoints (free + paid). | core · x402 |
 | **`@circuit/wallet`** | SOL/CIRC balances, transfers, Jupiter swaps. Implements `PaymentWallet`. | core · x402 · solana |
-| **`@circuit/agent`** | **The flagship** — `CircuitAgent` base class + off-box custody + local mock + scaffold. | core · inference · data |
+| **`@circuit/agent`** | **The agent runtime** — `CircuitAgent` base class + off-box custody + local mock + scaffold. | core · inference · data |
 | **`@circuit/node`** | Join/manage a mesh node from code (control plane + public registry). | core |
 | **`@circuit/onchain`** | CIRC balance + StakePoint stake verification via pure JSON-RPC. **No web3.js.** | core |
 | **`@circuit/sdk`** | Batteries-included meta-package — re-exports everything. | all |
@@ -124,7 +124,7 @@ Full reference: **[docs/packages.md](docs/packages.md)**.
 
 ## Write an agent
 
-The flagship. You extend `CircuitAgent`, implement `tick()`, and the runtime owns the rest — env wiring, off-box custody, the heartbeat, logs, and the SIGTERM lifecycle.
+The agent runtime. You extend `CircuitAgent`, implement `tick()`, and the runtime owns the rest — env wiring, off-box custody, the heartbeat, logs, and the SIGTERM lifecycle.
 
 ```ts
 import { CircuitAgent } from '@circuit/agent';
@@ -183,7 +183,7 @@ packages/
   x402/      the payment spine (402 → pay CIRC → retry · verify)   ← zero deps
   core/      http · config (DI) · ed25519 identity · types         ← zero deps
   inference/ │ data/ │ wallet/        the consume layer
-  agent/     CircuitAgent + off-box custody + scaffold (the flagship)
+  agent/     CircuitAgent + off-box custody + scaffold (the agent runtime)
   node/      │ onchain/               the contributor layer
   sdk/       meta-package (re-exports all)
 circuit-py/  Python consume client (inference + data + x402)

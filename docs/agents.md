@@ -1,6 +1,6 @@
 # Agents
 
-`@circuit/agent` is the flagship: write an autonomous agent that runs on Circuit's CPU mesh with
+`@circuit/agent` is the agent runtime: write an autonomous agent that runs on Circuit's CPU mesh with
 **off-box, non-custodial signing**. You extend `CircuitAgent` and implement `tick()` — the runtime owns
 everything else (env wiring, custody, heartbeat, logs, lifecycle). The same code paper-trades locally
 and runs live on borrowed hardware.
