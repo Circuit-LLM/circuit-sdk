@@ -154,11 +154,11 @@ npx circuit-agent new my-bot
 
 ### Trust & safety
 
-Your agent runs on a stranger's CPU, so be precise about the boundary:
+Your agent runs on a stranger's CPU, and the guarantees hold anyway:
 
-- **No drain, always.** The signer's only verbs are `buy`/`sell` — there is no transfer/withdraw, so a hostile host can never move funds out. The worst it can otherwise do is an *in-policy* swap.
-- **No forgery — for checkable strategies — via [Verified Intents](docs/verified-intents.md).** Commit a decision rule; the signer signs a trade only if your rule, re-run on *authenticated* inputs (signed data / inference receipts / zkTLS), produces exactly that trade. Pure software, any CPU. Closes "a host picks its own in-policy trade."
-- **Opaque strategies** the signer can't re-check fall back to conservative caps + deterrence, or a TEE — **[Sealed Agents](https://github.com/Circuit-LLM/circuit-agent-cloud/blob/main/docs/SEALED_AGENTS.md)** (special hardware, any strategy).
+- **No drain.** The signer's only verbs are `buy`/`sell` — no transfer/withdraw — so a hostile host can never move funds out. Period.
+- **No forged trades** — with **[Verified Intents](docs/verified-intents.md)**. Commit a decision rule, and the signer re-runs it on *authenticated* inputs (signed data / inference receipts / zkTLS) and signs **only** the trade that rule produces. A host that fully controls the agent still can't make it trade on its own terms — a tampered agent, faked data, or a host-chosen trade is rejected before signing. Pure software, any CPU.
+- **Works for any strategy.** Verified Intents covers any rule the signer can re-check — which is most agents (deterministic, or a rule over a signed-AI verdict). For a genuine black box, run it in a TEE: **[Sealed Agents](https://github.com/Circuit-LLM/circuit-agent-cloud/blob/main/docs/SEALED_AGENTS.md)**.
 
 Full guide — custody, lifecycle, the host can/can't table, the inference-payment vs. trading-custody distinction: **[docs/agents.md](docs/agents.md)**.
 

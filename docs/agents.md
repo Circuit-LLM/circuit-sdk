@@ -88,31 +88,37 @@ A rejected intent never throws — it resolves to `{ ok: false, code, error }`. 
 
 ### What a host can — and can't — do
 
-Be clear-eyed about the boundary, because your agent runs on a stranger's machine:
+Your agent's code runs on a stranger's machine, so every guarantee comes from the **off-box signer** —
+never from trusting the host. The boundary:
 
 | A malicious host… | …because |
 |---|---|
-| **cannot** move funds out of the agent wallet | there is no transfer/withdraw verb — only `buy`/`sell` |
-| **cannot** trade outside your policy | caps, cooldown, and allow/deny lists are enforced by the off-box signer |
+| **cannot** move funds out of the agent wallet | the signer's only verbs are `buy`/`sell` — there is no transfer/withdraw |
+| **cannot** trade outside your policy | caps, cooldown, and allow/deny lists are enforced off-box |
 | **cannot** run two copies trading at once | the monotonic-epoch fence supersedes the old session |
 | **cannot** touch a paper agent's value | paper mode never broadcasts a trade |
-| **cannot** forge a trade your rule doesn't justify — *with Verified Intents* | the signer re-runs your committed rule on authenticated inputs and signs only the matching trade |
-| **can** submit in-policy `buy`/`sell` of its choosing — *without Verified Intents* | the session token sits in the agent's environment on its box |
+| **cannot** make a trade your strategy didn't | **Verified Intents** — the signer re-runs your committed rule on *authenticated* inputs and signs only the trade that rule actually produces |
 
-So the honest summary: **funds are always safe (no drain).** Whether a hostile host can *influence which*
-in-policy trade fires depends on whether you've closed that last row — and there are two ways to:
+That last row is the one that matters when your logic runs on hardware you don't control, and **Verified
+Intents closes it.** Commit a decision rule, and the signer signs a trade only if your rule — re-run on
+signed data / inference receipts / zkTLS — produces exactly that trade. A tampered agent, faked data, or a
+host-chosen trade is rejected *before* anything is signed (`decision-unjustified` / `evidence-invalid`).
+It's pure software and runs on any CPU — **[turn it on → verified-intents.md](verified-intents.md)**.
 
-| Path | How | Works for | Needs |
-|---|---|---|---|
-| **Verified Intents** | the signer re-derives the trade: it signs only if your committed rule, re-run on *authenticated* inputs (signed data / inference receipts / zkTLS), produces exactly that trade | **checkable** strategies — deterministic rules, or rules over a signed-AI verdict | nothing special — **any CPU** (pure software) |
-| **Sealed Agents** | the agent runs inside a TEE; the signer trusts trades only from an attested enclave | **any** strategy, including opaque black boxes | **special hardware** (SEV-SNP / TDX / SGX / Nitro / H100 CC) |
+So: **funds can't be stolen, and trades can't be forged.** Two edges remain, and neither lets a host
+invent a trade:
 
-Pick **Verified Intents** if your logic is a rule (or a rule over Circuit data + a Circuit-AI verdict) —
-it's free and runs anywhere. See **[verified-intents.md](verified-intents.md)**. Pick **Sealed Agents**
-when the strategy is genuinely un-checkable and you have TEE hardware —
-**[SEALED_AGENTS.md](https://github.com/Circuit-LLM/circuit-agent-cloud/blob/main/docs/SEALED_AGENTS.md)**.
-With neither, a hostile host can grief via slippage/churn *within your caps* — bound it with conservative
-caps, a tight `allowTokens` list, small funding, and paper-by-default.
+- **Withholding / timing** — a host can refuse to submit a valid trade, or pick *when* among
+  genuinely-justified moments. It can drop or delay your trade, never fabricate one. Conservative caps and
+  small funding bound the impact.
+- **Opaque strategies** — Verified Intents covers anything the signer can re-check: a deterministic rule,
+  or a rule over a signed-AI verdict (which is most agents). A true black box the signer *can't* re-run
+  uses the hardware path instead — **[Sealed Agents](https://github.com/Circuit-LLM/circuit-agent-cloud/blob/main/docs/SEALED_AGENTS.md)**,
+  where a TEE attests the whole agent and works for any strategy.
+
+> Verified Intents is opt-in per agent (`requireVerifiedIntent`). Until you commit a rule the signer
+> enforces policy caps only, so a host could pick among *in-policy* trades — committing a rule is the
+> one step that closes that, and it's the recommended way to run a trading agent.
 
 ---
 
