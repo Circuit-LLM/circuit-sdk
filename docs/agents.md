@@ -86,6 +86,26 @@ A rejected intent never throws — it resolves to `{ ok: false, code, error }`. 
 `fenced`, `cooldown`, `over-trade-cap`, `over-daily-cap`, `action-not-allowed`, `token-denied`,
 `token-not-allowed`, `signer-unreachable`.
 
+### What a host can — and can't — do
+
+Be clear-eyed about the boundary, because your agent runs on a stranger's machine:
+
+| A malicious host… | …because |
+|---|---|
+| **cannot** move funds out of the agent wallet | there is no transfer/withdraw verb — only `buy`/`sell` |
+| **cannot** trade outside your policy | caps, cooldown, and allow/deny lists are enforced by the off-box signer |
+| **cannot** run two copies trading at once | the monotonic-epoch fence supersedes the old session |
+| **cannot** touch a paper agent's value | paper mode never broadcasts a trade |
+| **can** submit in-policy `buy`/`sell` of its choosing | the session token sits in the agent's environment on its box |
+
+So the honest summary: **funds are safe (no drain), but a hostile host can *influence* a live agent's
+trades within your caps** — griefing via slippage/churn, bounded by your policy. The mitigations you
+control are conservative caps, a tight `allowTokens` list, small funding, and paper-by-default.
+
+Closing that last row entirely — making trades come *only* from the genuine, unmodified agent even on
+untrusted hardware — is a deeper change to custody (TEE-attested "sealed" execution). The design for it
+is **[SEALED_AGENTS.md](https://github.com/Circuit-LLM/circuit-agent-cloud/blob/main/docs/SEALED_AGENTS.md)**.
+
 ---
 
 ## buy / sell
