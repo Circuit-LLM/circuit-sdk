@@ -20,6 +20,8 @@
 [![Tests](https://img.shields.io/badge/tests-93%20passing-success)](#testing)
 [![Status](https://img.shields.io/badge/status-beta-orange)](#status--roadmap)
 
+> **Beta software.** The Circuit SDK is under active development. Expect breaking changes between releases, incomplete features, and rough edges. Agents move real value (trades + x402 payments) — use small amounts until you're comfortable with how it behaves.
+
 [Website](https://circuitllm.xyz) · [OPS Terminal](https://circuitllm.xyz/data) · [Telegram](https://t.me/circuitllm) · [X / Twitter](https://x.com/CircuitLLM)
 
 </div>
