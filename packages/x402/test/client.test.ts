@@ -1,6 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert';
-import { X402Client, PaymentRequiredError, SpendCapError, type PaymentWallet } from '../src/client.ts';
+import {
+  X402Client,
+  PaymentRequiredError,
+  SpendCapError,
+  X402RequestError,
+  type PaymentWallet,
+} from '../src/client.ts';
 
 function resp(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
@@ -75,6 +81,30 @@ test('one free retry on a transient error after paying', async () => {
   });
   assert.equal(calls, 3);
   assert.equal(r.resp.status, 200);
+});
+
+test('json() parses the body and returns paymentTx', async () => {
+  const wallet: PaymentWallet = { async sendCirc() { return 'SIG'; } };
+  const c = new X402Client({ wallet });
+  let calls = 0;
+  const stub = (async () => {
+    calls++;
+    return calls === 1 ? resp(402, QUOTE) : resp(200, { value: 42 });
+  }) as typeof fetch;
+  const cc = new X402Client({ wallet, fetchImpl: stub });
+  const r = await cc.json<{ value: number }>('http://x');
+  assert.equal(r.data.value, 42);
+  assert.equal(r.paymentTx, 'SIG');
+  void c;
+});
+
+test('json() throws X402RequestError on a non-2xx final response', async () => {
+  const stub = (async () => resp(404, { error: 'nope' })) as typeof fetch;
+  const c = new X402Client({ fetchImpl: stub });
+  await assert.rejects(
+    () => c.json('http://x'),
+    (e: unknown) => e instanceof X402RequestError && e.status === 404 && (e.body as any).error === 'nope',
+  );
 });
 
 test('onPay hook fires before the wallet is charged', async () => {

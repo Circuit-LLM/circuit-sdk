@@ -7,14 +7,34 @@ The developer toolkit for building on the **Circuit** decentralized-LLM ecosyste
 > **Build autonomous agents that think, sense, and act on decentralized infrastructure — paid in CIRC,
 > with funds that can't be stolen.**
 
-**Status:** 🟢 Phase 0 built (`@circuit/x402` + `@circuit/core`); the rest is spec. The design lives
-in **[SDK.md](./SDK.md)** — read it first.
+**Status:** 🟢 Phases 0–1 built (`@circuit/{core,x402,inference,data,wallet,sdk}` — the consume MVP).
+`@circuit/agent` (the flagship) is next. The design lives in **[SDK.md](./SDK.md)**.
 
 ```bash
-npm install        # dev deps (typescript, @types/node)
-npm test           # 31 tests, zero-transpile (Node 22 strips TS types natively)
-npm run typecheck  # tsc --noEmit, both packages
+npm install        # workspace links + @solana/web3.js (wallet)
+npm test           # 50 tests, zero-transpile (Node 22 strips TS types natively)
+npm run typecheck  # tsc --noEmit, all packages
 ```
+
+### Quickstart (the MVP)
+
+```ts
+import { makeWallet, Inference, Data } from '@circuit/sdk';
+
+const wallet = makeWallet();                 // CIRCUIT_WALLET env, or pass a keypair
+const ai   = new Inference({ wallet });      // pays CIRC per call (x402), automatically
+const data = new Data({ wallet });
+
+// decentralized 72B inference, streamed:
+for await (const tok of ai.chatStream({ messages: [{ role: 'user', content: 'hi' }] }))
+  process.stdout.write(tok);
+
+// paid market data, one call:
+const px = await data.tokenPrice('8fQgfsRnRkKSeNUhevT7wp8mhNvMSJdLn1fJi4oVpump');
+```
+
+No API keys — the wallet is the account and the meter. Set `maxSpendRaw` to cap per-call spend, or
+`internalKey` to bypass payment on trusted hosts.
 
 ## Why
 
@@ -29,13 +49,13 @@ npm run typecheck  # tsc --noEmit, both packages
 |---|---|---|
 | `@circuit/x402` | the payment spine — pay any x402 endpoint in CIRC; verify on-chain | ✅ built |
 | `@circuit/core` | http · config (DI) · ed25519 identity · types | ✅ built |
-| `@circuit/inference` | OpenAI-compatible client for the DLLM mesh | extract |
-| `@circuit/data` | typed client for 21+ market/on-chain data endpoints | wrap |
-| `@circuit/wallet` | SOL/CIRC balances, transfers, Jupiter swaps | extract |
-| `@circuit/agent` | **flagship** — `CircuitAgent` base class + off-box custody + local mock + scaffold | build |
+| `@circuit/inference` | OpenAI-compatible client for the DLLM mesh | ✅ built |
+| `@circuit/data` | typed client for 21+ market/on-chain data endpoints | ✅ built |
+| `@circuit/wallet` | SOL/CIRC balances, transfers, Jupiter swaps | ✅ built |
+| `@circuit/agent` | **flagship** — `CircuitAgent` base class + off-box custody + local mock + scaffold | next |
 | `@circuit/node` | join/manage a mesh node from code | extract |
 | `@circuit/onchain` | CIRC · StakePoint · mesh_registry reads | extract |
-| `@circuit/sdk` | meta-package (re-exports) | build |
+| `@circuit/sdk` | meta-package (re-exports) | ✅ built |
 | `circuit-py` | Python consume client (inference + data + x402) | build |
 
 ## Roadmap

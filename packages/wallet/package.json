@@ -1,0 +1,21 @@
+{
+  "name": "@circuit/wallet",
+  "version": "0.0.0",
+  "description": "Circuit SDK wallet — SOL/CIRC balances, transfers, and Jupiter swaps. Implements @circuit/x402's PaymentWallet.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "node --experimental-strip-types --test test/*.test.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@circuit/core": "0.0.0",
+    "@circuit/x402": "0.0.0",
+    "@solana/web3.js": "^1.98.0",
+    "@solana/spl-token": "^0.4.14",
+    "bs58": "^6.0.0"
+  }
+}

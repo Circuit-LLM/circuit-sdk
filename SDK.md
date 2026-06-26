@@ -279,7 +279,7 @@ live. Mirrors the TS client surface; not a full port (no agent runtime, no walle
 | Phase | Ships | Why |
 |---|---|---|
 | **0 — spine** ✅ | `@circuit/x402` + `@circuit/core` | **DONE** — extracted, DI-cleaned, 31 tests green (see `packages/`) |
-| **1 — consume SDK** | `@circuit/inference` + `@circuit/data` + `@circuit/wallet` (+ `circuit-py`) | mostly extraction → a shippable "build with paid decentralized inference + data" SDK this/next week |
+| **1 — consume SDK** ✅ | `@circuit/inference` + `@circuit/data` + `@circuit/wallet` + `@circuit/sdk` meta | **DONE** — extracted onto the spine; 50 tests green (`circuit-py` deferred) |
 | **2 — flagship** | `@circuit/agent` (base class · custody client · `MockCustody` · scaffold) | the differentiated wedge nobody else has; the real investment |
 | **3 — contribute** | `@circuit/node` + `@circuit/onchain` | "earn by contributing", on-chain reads |
 

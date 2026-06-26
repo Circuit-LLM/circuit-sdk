@@ -1,0 +1,18 @@
+{
+  "name": "@circuit/inference",
+  "version": "0.0.0",
+  "description": "Circuit SDK inference — OpenAI-compatible client for the decentralized DLLM mesh, paid per call in CIRC (x402).",
+  "license": "UNLICENSED",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "node --experimental-strip-types --test test/*.test.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@circuit/core": "0.0.0",
+    "@circuit/x402": "0.0.0"
+  }
+}

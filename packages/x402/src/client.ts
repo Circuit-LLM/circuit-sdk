@@ -10,7 +10,8 @@ import { parse402, type PaymentQuote } from './quote.ts';
 export interface PaymentWallet {
   /** Send `amountRaw` base units of CIRC to `recipient`; resolve to the tx signature. */
   sendCirc(recipient: string, amountRaw: bigint): Promise<string>;
-  readonly address?: string;
+  /** Optional payer address, for logging / spend tracking (null when read-only). */
+  readonly address?: string | null;
 }
 
 export class PaymentRequiredError extends Error {
@@ -31,6 +32,24 @@ export class SpendCapError extends Error {
     this.quote = quote;
     this.capRaw = capRaw;
   }
+}
+
+export class X402RequestError extends Error {
+  readonly status: number;
+  readonly body: unknown;
+  constructor(status: number, body: unknown, url: string) {
+    super(`HTTP ${status} on ${url}`);
+    this.name = 'X402RequestError';
+    this.status = status;
+    this.body = body;
+  }
+}
+
+export interface X402JsonResult<T> {
+  data: T;
+  status: number;
+  paymentTx: string | null;
+  quote: PaymentQuote | null;
 }
 
 export interface X402Options {
@@ -102,5 +121,23 @@ export class X402Client {
       this.fetchImpl(url, { ...init, headers: { ...baseHeaders, ...extra } }),
     );
     return resp;
+  }
+
+  /** Pay-and-parse-JSON: like fetch() but parses the body and throws X402RequestError
+   *  on a non-2xx final response. NOT for streaming responses — use request() for those. */
+  async json<T = unknown>(url: string | URL, init: RequestInit = {}): Promise<X402JsonResult<T>> {
+    const baseHeaders = (init.headers as Record<string, string> | undefined) ?? {};
+    const { resp, paymentTx, quote } = await this.request((extra) =>
+      this.fetchImpl(url, { ...init, headers: { ...baseHeaders, ...extra } }),
+    );
+    const text = await resp.text();
+    let body: unknown;
+    try {
+      body = text ? JSON.parse(text) : null;
+    } catch {
+      body = text;
+    }
+    if (!resp.ok) throw new X402RequestError(resp.status, body, String(url));
+    return { data: body as T, status: resp.status, paymentTx, quote };
   }
 }

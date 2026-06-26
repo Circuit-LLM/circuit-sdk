@@ -13,7 +13,7 @@
   },
   "scripts": {
     "test": "node --experimental-strip-types --test packages/*/test/*.test.ts",
-    "typecheck": "tsc -p packages/core/tsconfig.json && tsc -p packages/x402/tsconfig.json"
+    "typecheck": "for p in core x402 inference data wallet sdk; do tsc -p packages/$p/tsconfig.json || exit 1; done"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
