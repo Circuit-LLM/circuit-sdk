@@ -280,7 +280,7 @@ live. Mirrors the TS client surface; not a full port (no agent runtime, no walle
 |---|---|---|
 | **0 — spine** ✅ | `@circuit/x402` + `@circuit/core` | **DONE** — extracted, DI-cleaned, 31 tests green (see `packages/`) |
 | **1 — consume SDK** ✅ | `@circuit/inference` + `@circuit/data` + `@circuit/wallet` + `@circuit/sdk` meta | **DONE** — extracted onto the spine; 50 tests green (`circuit-py` deferred) |
-| **2 — flagship** | `@circuit/agent` (base class · custody client · `MockCustody` · scaffold) | the differentiated wedge nobody else has; the real investment |
+| **2 — flagship** ✅ | `@circuit/agent` (base class · custody client · `MockCustody` · scaffold) | **DONE** — `CircuitAgent` over off-box custody; 64 tests green |
 | **3 — contribute** | `@circuit/node` + `@circuit/onchain` | "earn by contributing", on-chain reads |
 
 **MVP (end of Phase 1):** `npm i @circuit/sdk`, load a wallet, call `inference.chat()` and

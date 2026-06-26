@@ -7,12 +7,12 @@ The developer toolkit for building on the **Circuit** decentralized-LLM ecosyste
 > **Build autonomous agents that think, sense, and act on decentralized infrastructure — paid in CIRC,
 > with funds that can't be stolen.**
 
-**Status:** 🟢 Phases 0–1 built (`@circuit/{core,x402,inference,data,wallet,sdk}` — the consume MVP).
-`@circuit/agent` (the flagship) is next. The design lives in **[SDK.md](./SDK.md)**.
+**Status:** 🟢 Phases 0–2 built — `@circuit/{core,x402,inference,data,wallet,agent,sdk}`. The consume
+MVP **and** the agent flagship are live. The design lives in **[SDK.md](./SDK.md)**.
 
 ```bash
 npm install        # workspace links + @solana/web3.js (wallet)
-npm test           # 50 tests, zero-transpile (Node 22 strips TS types natively)
+npm test           # 64 tests, zero-transpile (Node 22 strips TS types natively)
 npm run typecheck  # tsc --noEmit, all packages
 ```
 
@@ -36,6 +36,25 @@ const px = await data.tokenPrice('8fQgfsRnRkKSeNUhevT7wp8mhNvMSJdLn1fJi4oVpump')
 No API keys — the wallet is the account and the meter. Set `maxSpendRaw` to cap per-call spend, or
 `internalKey` to bypass payment on trusted hosts.
 
+### Write an agent (the flagship)
+
+```ts
+import { CircuitAgent } from '@circuit/agent';
+
+class DipBot extends CircuitAgent {
+  async tick() {
+    // sense + think however you like, then act through off-box custody:
+    const r = await this.buy('<mint>', 0.01);   // signer holds the key; buy/sell only
+    if (r.ok) this.log(`bought (${r.code})`);
+  }
+}
+new DipBot().run();   // runtime owns env wiring, heartbeat, logs, SIGTERM lifecycle
+```
+
+Run it locally and it paper-trades with **identical policy semantics** (no signer needed);
+deploy it and the same code runs on a stranger's CPU where **funds can't be stolen** — the key is
+off-box and the only verbs are `buy`/`sell` within policy. `npx`-able scaffold via `scaffold()`.
+
 ## Why
 
 - **No API keys.** A Solana wallet *is* the account and the meter — every paid call is a CIRC micropayment (x402).
@@ -52,7 +71,7 @@ No API keys — the wallet is the account and the meter. Set `maxSpendRaw` to ca
 | `@circuit/inference` | OpenAI-compatible client for the DLLM mesh | ✅ built |
 | `@circuit/data` | typed client for 21+ market/on-chain data endpoints | ✅ built |
 | `@circuit/wallet` | SOL/CIRC balances, transfers, Jupiter swaps | ✅ built |
-| `@circuit/agent` | **flagship** — `CircuitAgent` base class + off-box custody + local mock + scaffold | next |
+| `@circuit/agent` | **flagship** — `CircuitAgent` base class + off-box custody + local mock + scaffold | ✅ built |
 | `@circuit/node` | join/manage a mesh node from code | extract |
 | `@circuit/onchain` | CIRC · StakePoint · mesh_registry reads | extract |
 | `@circuit/sdk` | meta-package (re-exports) | ✅ built |

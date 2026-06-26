@@ -5,6 +5,7 @@ export * from '@circuit/core';
 export * from '@circuit/inference';
 export * from '@circuit/data';
 export * from '@circuit/wallet';
+export * from '@circuit/agent';
 
 // @circuit/x402 — re-export everything EXCEPT the CIRC_* constants, which already
 // come from @circuit/core (same values; avoids an ambiguous star-export).

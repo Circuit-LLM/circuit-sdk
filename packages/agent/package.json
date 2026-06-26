@@ -1,7 +1,7 @@
 {
-  "name": "@circuit/sdk",
+  "name": "@circuit/agent",
   "version": "0.0.0",
-  "description": "Circuit SDK — batteries-included meta-package re-exporting @circuit/{core,x402,inference,data,wallet}.",
+  "description": "Circuit SDK agent runtime — write an autonomous agent (CircuitAgent) that runs on Circuit's CPU mesh with off-box (non-custodial) signing. Buy/sell only; funds can't leave.",
   "license": "UNLICENSED",
   "type": "module",
   "exports": {
@@ -13,10 +13,7 @@
   },
   "dependencies": {
     "@circuit/core": "0.0.0",
-    "@circuit/x402": "0.0.0",
     "@circuit/inference": "0.0.0",
-    "@circuit/data": "0.0.0",
-    "@circuit/wallet": "0.0.0",
-    "@circuit/agent": "0.0.0"
+    "@circuit/data": "0.0.0"
   }
 }
