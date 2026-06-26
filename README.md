@@ -1,30 +1,55 @@
-# Circuit SDK
-
-The developer toolkit for building on the **Circuit** decentralized-LLM ecosystem:
-**x402-paid inference, data, and wallet ops**, and **hosted autonomous agents with off-box
-(non-custodial) signing** — all settled per-call in CIRC.
-
-> **Build autonomous agents that think, sense, and act on decentralized infrastructure — paid in CIRC,
-> with funds that can't be stolen.**
-
-**Status:** 🟢 Phases 0–3 built — all nine packages (`core, x402, inference, data, wallet, agent, node,
-onchain, sdk`). Consume, agents, and the contributor side are live. The design lives in **[SDK.md](./SDK.md)**.
-
-```bash
-npm install        # workspace links + @solana/web3.js (wallet)
-npm test           # 81 tests, zero-transpile (Node 22 strips TS types natively)
-npm run typecheck  # tsc --noEmit, all packages
-npm run build      # tsup → dist/*.js + .d.ts (for publishing)
+```
+ ██████╗██╗██████╗  ██████╗██╗   ██╗██╗████████╗    ███████╗██████╗ ██╗  ██╗
+██╔════╝██║██╔══██╗██╔════╝██║   ██║██║╚══██╔══╝    ██╔════╝██╔══██╗██║ ██╔╝
+██║     ██║██████╔╝██║     ██║   ██║██║   ██║       ███████╗██║  ██║█████╔╝
+██║     ██║██╔══██╗██║     ██║   ██║██║   ██║       ╚════██║██║  ██║██╔═██╗
+╚██████╗██║██║  ██║╚██████╗╚██████╔╝██║   ██║       ███████║██████╔╝██║  ██╗
+ ╚═════╝╚═╝╚═╝  ╚═╝ ╚═════╝ ╚═════╝ ╚═╝   ╚═╝       ╚══════╝╚═════╝ ╚═╝  ╚═╝
+              S D K  ·  build on the decentralized network
 ```
 
-Dev resolves cross-package imports to `src/*.ts` (the `development` export condition → zero build).
-Published consumers get the compiled `dist/*.js`. Each package rebuilds `dist` on `prepack`, so
-`npm publish --workspaces` ships fresh JS + types.
+<div align="center">
 
-Scaffold a new agent project: `npx circuit-agent new my-bot` (or, in this repo,
-`node --experimental-strip-types --conditions=development packages/agent/bin/circuit-agent.ts new my-bot`).
+# circuit-sdk
 
-### Quickstart (the MVP)
+**The developer toolkit for the Circuit decentralized intelligence network. Call the decentralized 72B, buy on-chain data, move CIRC, and ship autonomous agents that run on borrowed hardware with off-box custody — all paid per call in CIRC via x402, with no API keys. One TypeScript monorepo, plus a Python client.**
+
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178c6)](https://www.typescriptlang.org)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D22-brightgreen)](https://nodejs.org)
+[![Python](https://img.shields.io/badge/python-%3E%3D3.10-3776ab)](https://www.python.org)
+[![Tests](https://img.shields.io/badge/tests-93%20passing-success)](#testing)
+[![Status](https://img.shields.io/badge/status-beta-orange)](#status--roadmap)
+
+[Website](https://circuitllm.xyz) · [OPS Terminal](https://circuitllm.xyz/data) · [Telegram](https://t.me/circuitllm) · [X / Twitter](https://x.com/CircuitLLM)
+
+</div>
+
+---
+
+**[What it is](#what-it-is)** · **[Quick start](#quick-start)** · **[x402](#x402--pay-per-call-no-api-keys)** · **[Packages](#the-packages)** · **[Agents](#write-an-agent)** · **[Contribute](#contribute-a-node)** · **[How it works](#how-it-works)** · **[Docs](#docs)**
+
+---
+
+## What it is
+
+Circuit is a network of decentralized, pay-per-use primitives: a contributor-owned 72B model, an on-chain data API, hosted agents with non-custodial signing, and a CPU/GPU marketplace — every call settled in **CIRC** over **x402**. The SDK is the clean way to build on all of it.
+
+It's layered, and **an agent composes the whole stack** — it *thinks* (inference), *senses* (data), *acts* (custody), and *lives* somewhere (hosting):
+
+- **Inference** — stream the decentralized 72B with an OpenAI-compatible client; pay per call, automatically.
+- **Data** — 20+ typed market & on-chain endpoints (token price, wallet analytics, security, DeFi, …).
+- **Wallet** — SOL + CIRC (Token-2022) balances, transfers, and Jupiter swaps.
+- **x402** — the payment spine: turn any `402 Payment Required` into an on-chain CIRC micropayment + retry. No accounts, no API keys — **a wallet is the account and the meter.**
+- **Agents** — write a `CircuitAgent`, implement `tick()`, and it runs on a stranger's CPU where **funds can't be stolen**: the signing key is off-box and the only verbs are `buy`/`sell` within your policy.
+- **Node & on-chain** — join the mesh from code, and read CIRC balances + StakePoint stake with pure RPC.
+
+> Most of this is *extracted from the live ecosystem*, not invented — the same x402 flow, the same custody contract, the same mesh protocol that production already runs.
+
+---
+
+## Quick start
+
+**TypeScript** — the consume MVP, in five lines:
 
 ```ts
 import { makeWallet, Inference, Data } from '@circuit/sdk';
@@ -33,64 +58,179 @@ const wallet = makeWallet();                 // CIRCUIT_WALLET env, or pass a ke
 const ai   = new Inference({ wallet });      // pays CIRC per call (x402), automatically
 const data = new Data({ wallet });
 
-// decentralized 72B inference, streamed:
-for await (const tok of ai.chatStream({ messages: [{ role: 'user', content: 'hi' }] }))
-  process.stdout.write(tok);
+for await (const tok of ai.chatStream({ messages: [{ role: 'user', content: 'explain x402 in one line' }] }))
+  process.stdout.write(tok);                 // stream the decentralized 72B
 
-// paid market data, one call:
 const px = await data.tokenPrice('8fQgfsRnRkKSeNUhevT7wp8mhNvMSJdLn1fJi4oVpump');
 ```
 
-No API keys — the wallet is the account and the meter. Set `maxSpendRaw` to cap per-call spend, or
-`internalKey` to bypass payment on trusted hosts.
+**Python** — same idea, for the data/ML side:
 
-### Write an agent (the flagship)
+```python
+from circuit import Inference, Data
+
+ai = Inference(wallet=my_wallet)             # any object with send_circ(recipient, amount_raw)
+print(ai.chat([{"role": "user", "content": "hi"}])["content"])
+```
+
+No API keys. Set `maxSpendRaw` to cap per-call spend, or `internalKey` to bypass payment on trusted hosts. Read-only data and the mesh topology need **no wallet at all**.
+
+> **CIRC token CA:** `8fQgfsRnRkKSeNUhevT7wp8mhNvMSJdLn1fJi4oVpump` · [Pump.fun](https://pump.fun/coin/8fQgfsRnRkKSeNUhevT7wp8mhNvMSJdLn1fJi4oVpump)
+
+---
+
+## x402 — pay per call, no API keys
+
+x402 revives HTTP's long-dormant `402 Payment Required` as a real micropayment protocol: instead of an API key and a monthly bill, **each request pays for itself, on-chain, per call.** Every paid call in the SDK runs the same loop — and `@circuit/x402` makes it one line.
+
+| Step | What happens |
+|------|--------------|
+| **1 · Ask** | The client `POST`s your request with **no payment**. |
+| **2 · 402** | The server replies `402 Payment Required` with the price — an amount of **CIRC** and the treasury to send it to. |
+| **3 · Pay** | The client transfers that CIRC on Solana (a Token-2022 mint) and gets a transaction signature. |
+| **4 · Retry** | It re-sends with `X-Payment-Signature: <txSig>`; the server verifies the on-chain payment and returns the result. |
+
+```ts
+import { X402Client } from '@circuit/sdk';
+
+const x402 = new X402Client({ wallet, maxSpendRaw: 500_000_000n });   // ≤ 500 CIRC/call
+const { data } = await x402.json('https://inference.circuitllm.xyz/v1/models');
+```
+
+`X402Client` is generic — wrap *any* x402 endpoint, not just Circuit's. It's streaming-safe, has a spend cap and an approval hook, and ships the server-side `verifyPaymentTx` too, so you can gate your own endpoints with the same code. Deep dive: **[docs/x402.md](docs/x402.md)**.
+
+---
+
+## The packages
+
+One npm workspace of scoped packages (`@circuit/sdk` re-exports them all), plus a stdlib Python client.
+
+| Package | What it does | Depends on |
+|---------|--------------|------------|
+| **`@circuit/x402`** | The payment spine — pay any x402 endpoint in CIRC; verify payments server-side. **Zero deps.** | — |
+| **`@circuit/core`** | http · injectable config · ed25519 identity · shared types. **Zero deps.** | — |
+| **`@circuit/inference`** | OpenAI-compatible client for the DLLM mesh (`chat`, `chatStream`, `listModels`). | core · x402 |
+| **`@circuit/data`** | Typed client for 20+ Circuit Data API endpoints (free + paid). | core · x402 |
+| **`@circuit/wallet`** | SOL/CIRC balances, transfers, Jupiter swaps. Implements `PaymentWallet`. | core · x402 · solana |
+| **`@circuit/agent`** | **The flagship** — `CircuitAgent` base class + off-box custody + local mock + scaffold. | core · inference · data |
+| **`@circuit/node`** | Join/manage a mesh node from code (control plane + public registry). | core |
+| **`@circuit/onchain`** | CIRC balance + StakePoint stake verification via pure JSON-RPC. **No web3.js.** | core |
+| **`@circuit/sdk`** | Batteries-included meta-package — re-exports everything. | all |
+| **`circuit-py`** | Python consume client — inference + data + x402. **Stdlib only.** | — |
+
+Full reference: **[docs/packages.md](docs/packages.md)**.
+
+---
+
+## Write an agent
+
+The flagship. You extend `CircuitAgent`, implement `tick()`, and the runtime owns the rest — env wiring, off-box custody, the heartbeat, logs, and the SIGTERM lifecycle.
 
 ```ts
 import { CircuitAgent } from '@circuit/agent';
 
 class DipBot extends CircuitAgent {
   async tick() {
-    // sense + think however you like, then act through off-box custody:
-    const r = await this.buy('<mint>', 0.01);   // signer holds the key; buy/sell only
-    if (r.ok) this.log(`bought (${r.code})`);
+    const trending = await this.data().tokenTrending();   // sense
+    const pick = decide(trending);                        // your strategy
+    if (pick) {
+      const r = await this.buy(pick.mint, 0.01);          // act — off-box signer
+      if (r.ok) this.log(`bought ${pick.mint} (${r.code})`);
+    }
   }
 }
-new DipBot().run();   // runtime owns env wiring, heartbeat, logs, SIGTERM lifecycle
+
+new DipBot().run();
 ```
 
-Run it locally and it paper-trades with **identical policy semantics** (no signer needed);
-deploy it and the same code runs on a stranger's CPU where **funds can't be stolen** — the key is
-off-box and the only verbs are `buy`/`sell` within policy. `npx`-able scaffold via `scaffold()`.
+**Custody is off-box.** The agent holds only a scoped session token + epoch — never the key. `this.buy`/`this.sell` go to the signer, which holds the wallet, enforces `buy`/`sell`-only policy (max per-trade, max per-day, cooldown, allow/deny lists), and fences out a crashed instance with a monotonic epoch. **The worst a malicious host can do is an in-policy swap — never a drain.**
 
-## Why
+Run it locally and the same code **paper-trades with identical policy semantics** (no signer needed); deploy it and it runs on the CPU mesh. Scaffold a project:
 
-- **No API keys.** A Solana wallet *is* the account and the meter — every paid call is a CIRC micropayment (x402).
-- **Decentralized inference.** A contributor-owned 72B mesh, not a single vendor.
-- **Non-custodial agents.** Your strategy runs on someone else's CPU, but the signing key is off-box; the worst a host can do is an in-policy `buy`/`sell`, never a drain.
-- **Earn by contributing.** The same SDK can join the mesh (GPU/CPU) and get paid.
+```bash
+npx circuit-agent new my-bot
+```
 
-## Planned packages
+Full guide — custody, lifecycle, the inference-payment vs. trading-custody distinction: **[docs/agents.md](docs/agents.md)**.
 
-| Package | What | Status |
-|---|---|---|
-| `@circuit/x402` | the payment spine — pay any x402 endpoint in CIRC; verify on-chain | ✅ built |
-| `@circuit/core` | http · config (DI) · ed25519 identity · types | ✅ built |
-| `@circuit/inference` | OpenAI-compatible client for the DLLM mesh | ✅ built |
-| `@circuit/data` | typed client for 21+ market/on-chain data endpoints | ✅ built |
-| `@circuit/wallet` | SOL/CIRC balances, transfers, Jupiter swaps | ✅ built |
-| `@circuit/agent` | **flagship** — `CircuitAgent` base class + off-box custody + local mock + scaffold | ✅ built |
-| `@circuit/node` | join/manage a mesh node from code (control plane + registry) | ✅ built |
-| `@circuit/onchain` | CIRC balance · StakePoint stake verification (pure RPC) | ✅ built |
-| `@circuit/sdk` | meta-package (re-exports) | ✅ built |
-| `circuit-py` | Python consume client (inference + data + x402) | ✅ built ([`circuit-py/`](./circuit-py)) |
+---
 
-## Roadmap
+## Contribute a node
 
-0. **Spine** — `@circuit/x402` + `@circuit/core`
-1. **Consume SDK** — `@circuit/inference` + `@circuit/data` + `@circuit/wallet`  → the MVP
-2. **Flagship** — `@circuit/agent`
-3. **Contribute** — `@circuit/node` + `@circuit/onchain`
+The same SDK that *consumes* the network can *join* it — and read what's staked on-chain.
 
-See **[SDK.md](./SDK.md)** for the full specification (architecture, per-package API, custody model,
-packaging, and the grounded API reference).
+```ts
+import { MeshControl, generateMeshIdentity, verifyStake } from '@circuit/sdk';
+
+const id = generateMeshIdentity();
+const mesh = new MeshControl({ controlUrl: 'http://control:18932', identity: id });
+const { assignment } = await mesh.register({ endpoint: ['1.2.3.4', 5000], capacityLayers: 40, modelFp: 'qwen2.5-72b-awq' });
+await mesh.ready();   // …then heartbeat; the heavy GPU serving lives in the node image
+
+const stake = await verifyStake(wallet, pool, 100_000, { rpcUrl });   // ≥ 100k CIRC staked?
+```
+
+`@circuit/node` speaks both the inference-mesh control plane (register/heartbeat) and the public node registry (announce/ping); `@circuit/onchain` reads stake + CIRC balances with no `@solana/web3.js`. Details: **[docs/contributing-a-node.md](docs/contributing-a-node.md)**.
+
+---
+
+## How it works
+
+A pnpm/npm-workspaces TypeScript monorepo. **x402 is the spine; everything paid depends on it; everything depends on core.**
+
+```
+packages/
+  x402/      the payment spine (402 → pay CIRC → retry · verify)   ← zero deps
+  core/      http · config (DI) · ed25519 identity · types         ← zero deps
+  inference/ │ data/ │ wallet/        the consume layer
+  agent/     CircuitAgent + off-box custody + scaffold (the flagship)
+  node/      │ onchain/               the contributor layer
+  sdk/       meta-package (re-exports all)
+circuit-py/  Python consume client (inference + data + x402)
+```
+
+**Zero-build dev, compiled publishing.** Conditional exports resolve cross-package imports to `src/*.ts` for development (Node 22's native type-stripping — no transpile step) and to compiled `dist/*.js` for consumers. Tests run straight off TypeScript:
+
+```bash
+npm install
+npm test            # 81 TS tests, zero-transpile
+npm run typecheck   # tsc --noEmit, all 9 packages
+npm run build       # tsup → dist/*.js + .d.ts (publishing)
+cd circuit-py && python3 -m unittest discover -s tests   # 12 Python tests
+```
+
+Design + rationale in **[SDK.md](SDK.md)** and **[docs/architecture.md](docs/architecture.md)**.
+
+---
+
+## Status & roadmap
+
+**Beta.** All nine TypeScript packages + the Python client are built, extracted faithfully from the live ecosystem, and covered by **93 tests** (81 TS + 12 Python), all typecheck-clean. The full roadmap — spine → consume → agents → contributor — is complete.
+
+Working today: paid inference + data, CIRC wallet ops, the `CircuitAgent` runtime over off-box custody (with a local mock), the mesh + registry clients, and on-chain stake reads. Next: streaming for `circuit-py`, a Solana `PaymentWallet` for Python, and the first public npm release (version bump + publish).
+
+---
+
+## Docs
+
+- **[SDK.md](SDK.md)** — the full specification (architecture, per-package API, the custody model, the roadmap)
+- **[docs/getting-started.md](docs/getting-started.md)** — install, connect a wallet, your first paid call (TS + Python)
+- **[docs/packages.md](docs/packages.md)** — every package's API surface
+- **[docs/x402.md](docs/x402.md)** — the payment spine, client + server
+- **[docs/agents.md](docs/agents.md)** — write + host an agent, off-box custody in depth
+- **[docs/contributing-a-node.md](docs/contributing-a-node.md)** — join the mesh, read stake on-chain
+- **[docs/architecture.md](docs/architecture.md)** — the monorepo, dual-mode build, the two identity schemes
+
+---
+
+## Community
+
+[Website](https://circuitllm.xyz) · [OPS Terminal](https://circuitllm.xyz/data) · [Telegram](https://t.me/circuitllm) · [X / Twitter](https://x.com/CircuitLLM)
+
+Part of the Circuit ecosystem — alongside [circuit-cli](https://github.com/Circuit-LLM/circuit-cli) (the terminal), [circuit-agent-cloud](https://github.com/Circuit-LLM/circuit-agent-cloud) (agent hosting), and the decentralized DLLM engine.
+
+---
+
+## License
+
+© Circuit LLM. All rights reserved during private development.
