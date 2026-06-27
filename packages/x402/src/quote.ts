@@ -8,12 +8,12 @@ export function formatCirc(raw: bigint): string {
   return (Number(raw) / 10 ** CIRC_DECIMALS).toFixed(2);
 }
 
-/** Raw CIRC base units required for a USD price at a given CIRC/USD rate.
- *  Rounds UP to a whole CIRC token, then to raw units. Pure + deterministic. */
+/** Raw CIRC base units required for a USD price at a given CIRC/USD rate. Rounds UP in RAW units (NOT to
+ *  a whole CIRC token) so a request is charged its fair value, never bumped to the next token boundary —
+ *  byte-identical to the server (circuit-data-api/lib/pricing.js) + circuit-py. Pure + deterministic. */
 export function circRawFromUsd(usdPrice: number, circUsd: number): bigint {
   const rate = circUsd > 0 ? circUsd : FALLBACK_CIRC_USD;
-  const circAmount = usdPrice / rate;
-  return BigInt(Math.ceil(circAmount) * 10 ** CIRC_DECIMALS);
+  return BigInt(Math.ceil((usdPrice / rate) * 10 ** CIRC_DECIMALS));
 }
 
 export interface PaymentQuote {

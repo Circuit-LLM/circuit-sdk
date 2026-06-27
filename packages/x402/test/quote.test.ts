@@ -3,14 +3,19 @@ import assert from 'node:assert';
 import { circRawFromUsd, formatCirc, parse402, CircPriceOracle } from '../src/quote.ts';
 import { CIRC_MINT } from '../src/constants.ts';
 
-test('circRawFromUsd rounds up to a whole CIRC, then to raw units', () => {
-  assert.equal(circRawFromUsd(0.03, 0.0001), 300_000_000n); // 300 CIRC
-  assert.equal(circRawFromUsd(0.001, 0.0001), 10_000_000n); // 10 CIRC
-  assert.equal(circRawFromUsd(0.00015, 0.0001), 2_000_000n); // 1.5 → ceil 2 CIRC
+// GOLDEN VECTORS — byte-identical to circuit-data-api/tests/pricing.test.js + circuit-py. Raw-unit ceil:
+// a request is charged its fair value, never bumped to the next whole CIRC token.
+test('circRawFromUsd golden vectors (raw-unit ceil, no whole-token overcharge)', () => {
+  assert.equal(circRawFromUsd(0.0001, 0.0001), 1_000_000n);   // 1 CIRC
+  assert.equal(circRawFromUsd(0.0015, 0.001), 1_500_000n);    // 1.5 CIRC (old whole-token: 2 CIRC)
+  assert.equal(circRawFromUsd(0.00001, 0.0001), 100_000n);    // 0.1 CIRC (old: 1 CIRC, 10x over)
+  assert.equal(circRawFromUsd(0.03, 0.0001), 300_000_000n);   // 300 CIRC
+  assert.equal(circRawFromUsd(0.00015, 0.0001), 1_500_000n);  // 1.5 CIRC fair (not 2)
 });
 
 test('circRawFromUsd uses the fallback rate when given 0', () => {
   assert.equal(circRawFromUsd(0.0001, 0), 1_000_000n); // 0.0001 / 0.0001 = 1 CIRC
+  assert.equal(circRawFromUsd(0.001, 0), 10_000_000n);
 });
 
 test('formatCirc renders raw base units', () => {

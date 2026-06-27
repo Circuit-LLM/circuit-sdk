@@ -29,10 +29,15 @@ class FakeWallet:
 
 
 class TestX402(unittest.TestCase):
-    def test_circ_raw_from_usd_rounds_up(self):
-        self.assertEqual(circ_raw_from_usd(0.03, 0.0001), 300_000_000)
-        self.assertEqual(circ_raw_from_usd(0.00015, 0.0001), 2_000_000)  # 1.5 → ceil 2
-        self.assertEqual(circ_raw_from_usd(0.0001, 0), 1_000_000)  # fallback rate
+    def test_circ_raw_from_usd_golden(self):
+        # GOLDEN VECTORS — byte-identical to circuit-data-api/tests/pricing.test.js + @circuit/x402.
+        # Raw-unit ceil: charged fair value, never bumped to the next whole CIRC token.
+        self.assertEqual(circ_raw_from_usd(0.0001, 0.0001), 1_000_000)    # 1 CIRC
+        self.assertEqual(circ_raw_from_usd(0.0015, 0.001), 1_500_000)     # 1.5 CIRC (old: 2)
+        self.assertEqual(circ_raw_from_usd(0.00001, 0.0001), 100_000)     # 0.1 CIRC (old: 1, 10x over)
+        self.assertEqual(circ_raw_from_usd(0.03, 0.0001), 300_000_000)    # 300 CIRC
+        self.assertEqual(circ_raw_from_usd(0.00015, 0.0001), 1_500_000)   # 1.5 CIRC fair (not 2)
+        self.assertEqual(circ_raw_from_usd(0.0001, 0), 1_000_000)         # fallback rate
 
     def test_format_circ(self):
         self.assertEqual(format_circ(300_000_000), "300.00")

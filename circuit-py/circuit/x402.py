@@ -23,10 +23,11 @@ _TRANSIENT = {429, 500, 502, 503, 504}
 # ── pricing / quote ──────────────────────────────────────────────────────────
 
 def circ_raw_from_usd(usd_price: float, circ_usd: float) -> int:
-    """Raw CIRC base units for a USD price at a CIRC/USD rate. Rounds UP to a whole
-    CIRC token (matches the server). Pure + deterministic."""
+    """Raw CIRC base units for a USD price at a CIRC/USD rate. Rounds UP in RAW units
+    (NOT to a whole CIRC token) so a request is charged its fair value — byte-identical
+    to the server (circuit-data-api/lib/pricing.js) + @circuit/x402. Pure + deterministic."""
     rate = circ_usd if circ_usd > 0 else FALLBACK_CIRC_USD
-    return math.ceil(usd_price / rate) * (10 ** CIRC_DECIMALS)
+    return math.ceil((usd_price / rate) * (10 ** CIRC_DECIMALS))
 
 
 def format_circ(raw: int) -> str:
