@@ -128,7 +128,7 @@ const reject = (code: string, error: string): IntentResult => ({ ok: false, code
 /** A rejection (ok:false) or an admission (ok:true) carrying the post-trade daily spend. */
 export type Admission =
   | { ok: false; code: string; error: string }
-  | { ok: true; sizeSol: number; daySpentSol: number };
+  | { ok: true; sizeSol: number; daySpentSol: number; prevTradeTs: number };
 
 /** The owner's trading policy as a stateful gate — the single source of truth shared by every
  *  paper/local/vault custody, so they ALL reject identically (and match the off-box signer's codes).
@@ -175,9 +175,17 @@ export class PolicyEngine {
     if (this.daySpentSol + sizeSol > this.policy.maxDailySol)
       return { ok: false, code: 'over-daily-cap', error: `daily ${this.daySpentSol.toFixed(4)}+${sizeSol} > ${this.policy.maxDailySol}` };
 
+    const prevTradeTs = this.lastTradeTs;
     this.daySpentSol += sizeSol;
     this.lastTradeTs = t;
-    return { ok: true, sizeSol, daySpentSol: this.spentToday };
+    return { ok: true, sizeSol, daySpentSol: this.spentToday, prevTradeTs };
+  }
+
+  /** Undo an admission whose trade did NOT execute (e.g. the on-chain submit threw) — restore the daily
+   *  spend + cooldown so a transient failure doesn't eat the day's budget or impose a false cooldown. */
+  revert(adm: { sizeSol: number; prevTradeTs: number }): void {
+    this.daySpentSol = Math.max(0, this.daySpentSol - adm.sizeSol);
+    this.lastTradeTs = adm.prevTradeTs;
   }
 }
 
@@ -343,6 +351,7 @@ export class VaultCustody implements Custody {
       const { signature, solValue } = await this.executor.execute(intent, vi);
       return { ok: true, code: 'vault-trade', signature, txid: signature, submitted: true, paper: false, solValue, daySpentSol: a.daySpentSol, address: this.address ?? undefined };
     } catch (e) {
+      this.engine.revert(a); // the trade never landed — don't let it consume the day's budget/cooldown
       return { ok: false, code: 'vault-trade-failed', error: (e as Error).message };
     }
   }

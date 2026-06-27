@@ -80,3 +80,15 @@ test('VaultCustody.verifiedIntent forwards the VerifiedIntent to the executor (s
   assert.ok(calls[0]!.vi, 'the executor receives the VerifiedIntent');
   assert.equal(calls[0]!.vi?.rule, 'r1');
 });
+
+test('VaultCustody (live) rolls back the daily budget when the on-chain trade fails (L1)', async () => {
+  const failing: VaultTradeExecutor = { async execute() { throw new Error('rpc down'); } };
+  // daily cap = 0.05; two 0.04 buys. WITHOUT rollback the 1st failed buy sticks (0.04) and the 2nd
+  // (0.04+0.04=0.08 > 0.05) is rejected over-daily-cap. WITH rollback the 2nd is admitted (then fails).
+  const c = new VaultCustody({ now: () => 0, paper: false, executor: failing, address: 'VaultPDA',
+    policy: { maxNotionalSol: 0.05, maxDailySol: 0.05, cooldownMs: 0, allow: ['buy'], denyTokens: [] } });
+  const r1 = await c.buy('TOK', 0.04);
+  assert.equal(r1.code, 'vault-trade-failed');
+  const r2 = await c.buy('TOK', 0.04);
+  assert.equal(r2.code, 'vault-trade-failed', 'failed trade was rolled back — 2nd buy is not over-daily-cap');
+});
