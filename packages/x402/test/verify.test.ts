@@ -4,10 +4,14 @@ import {
   circReceived,
   verifyPaymentTx,
   MemoryReplayStore,
+  FileReplayStore,
   type ParsedTx,
   type ParsedTxConnection,
 } from '../src/verify.ts';
 import { CIRC_MINT } from '../src/constants.ts';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 function tx(opts: { received?: bigint; treasury?: string; blockTime?: number | null; err?: unknown } = {}): ParsedTx {
   const treasury = opts.treasury ?? 'TREASURY';
@@ -44,6 +48,20 @@ test('verifyPaymentTx rejects an insufficient payment', async () => {
     () => verifyPaymentTx('SIG', 300_000_000n, { connection: conn(tx({ received: 1_000_000n })), treasury: 'TREASURY' }),
     /Insufficient/,
   );
+});
+
+test('FileReplayStore dedups a signature durably across instances (cross-process)', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'replay-'));
+  try {
+    const a = new FileReplayStore(dir);
+    const b = new FileReplayStore(dir); // a second "worker" sharing the dir
+    assert.equal(a.has('SIG-1'), false);
+    a.add('SIG-1');
+    assert.equal(a.has('SIG-1'), true);
+    assert.equal(b.has('SIG-1'), true, 'a second worker sees the consumed signature');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 test('null blockTime is refused without a replay store, accepted with one (E3)', async () => {

@@ -3,6 +3,8 @@
 // framework-agnostic — the Solana connection + replay store are injected, so there is
 // no hard dependency on @solana/web3.js, Express, or any secrets backend.
 
+import { mkdirSync, existsSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { CIRC_MINT, MAX_TX_AGE_MS } from './constants.ts';
 import { formatCirc } from './quote.ts';
 
@@ -42,7 +44,7 @@ export interface ReplayStore {
 
 // DEV-ONLY: in-memory, per-process. Behind multiple workers a payment consumed by one worker is unseen
 // by another (replay across workers + paid-but-denied on the client's retry). PROD MUST use a shared,
-// durable ReplayStore (Redis/DB) so a signature is single-use across the whole verifier fleet.
+// durable ReplayStore — FileReplayStore (one host, multiple workers) or a Redis-backed one (multi-host).
 export class MemoryReplayStore implements ReplayStore {
   private readonly seen = new Set<string>();
   has(sig: string): boolean {
@@ -50,6 +52,19 @@ export class MemoryReplayStore implements ReplayStore {
   }
   add(sig: string): void {
     this.seen.add(sig);
+  }
+}
+
+// Durable, cross-PROCESS replay store: one file per consumed signature in a shared directory. Atomic
+// (`wx` flag), so concurrent workers on the same host can't both consume the same payment. For multiple
+// HOSTS, back it with Redis/DB behind the same ReplayStore interface.
+export class FileReplayStore implements ReplayStore {
+  private readonly dir: string;
+  constructor(dir: string) { this.dir = dir; mkdirSync(dir, { recursive: true }); }
+  private p(sig: string): string { return join(this.dir, sig.replace(/[^A-Za-z0-9_-]/g, '_')); }
+  has(sig: string): boolean { return existsSync(this.p(sig)); }
+  add(sig: string): void {
+    try { writeFileSync(this.p(sig), '', { flag: 'wx' }); } catch { /* already consumed → keep first */ }
   }
 }
 
