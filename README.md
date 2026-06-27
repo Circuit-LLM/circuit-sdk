@@ -39,7 +39,7 @@ Circuit is a network of decentralized, pay-per-use primitives: a contributor-own
 It's layered, and **an agent composes the whole stack** — it *thinks* (inference), *senses* (data), *acts* (custody), and *lives* somewhere (hosting):
 
 - **Inference** — stream the decentralized 72B with an OpenAI-compatible client; pay per call, automatically.
-- **Data** — 20+ typed market & on-chain endpoints (token price, wallet analytics, security, DeFi, …).
+- **Data** — 40+ typed market & on-chain endpoints (token price, wallet analytics, security, DeFi, real-time price feed, …) — full data-API coverage, with a generic `get()` escape hatch for anything new.
 - **Wallet** — SOL + CIRC (Token-2022) balances, transfers, and Jupiter swaps.
 - **x402** — the payment spine: turn any `402 Payment Required` into an on-chain CIRC micropayment + retry. No accounts, no API keys — **a wallet is the account and the meter.**
 - **Agents** — write a `CircuitAgent`, implement `tick()`, and it runs on a stranger's CPU where **funds can't be stolen**: the signing key is off-box and the only verbs are `buy`/`sell` within your policy.
@@ -112,7 +112,7 @@ One npm workspace of scoped packages (`@circuit/sdk` re-exports them all), plus 
 | **`@circuit/x402`** | The payment spine — pay any x402 endpoint in CIRC; verify payments server-side. **Zero deps.** | — |
 | **`@circuit/core`** | http · injectable config · ed25519 identity · shared types. **Zero deps.** | — |
 | **`@circuit/inference`** | OpenAI-compatible client for the DLLM mesh (`chat`, `chatStream`, `listModels`). | core · x402 |
-| **`@circuit/data`** | Typed client for 20+ Circuit Data API endpoints (free + paid). | core · x402 |
+| **`@circuit/data`** | Typed client for 40+ Circuit Data API endpoints — full coverage (free + paid), with a generic `get()` escape hatch. | core · x402 |
 | **`@circuit/wallet`** | SOL/CIRC balances, transfers, Jupiter swaps. Implements `PaymentWallet`. | core · x402 · solana |
 | **`@circuit/agent`** | **The agent runtime** — `CircuitAgent` base class + off-box custody + verified-intent mode + local mock + scaffold. | core · inference · data · attest |
 | **`@circuit/attest`** | **[Verified Intents](docs/verified-intents.md)** — sign/verify evidence, the rule DSL + evaluator, and the signer's decision gate. **Zero deps** (beyond core). | core |

@@ -100,6 +100,8 @@ export class Data {
     return this.get('/api/token-ohlcv', { mint, window: opts.window, limit: opts.limit });
   }
   tokenHolders(mint: string) { return this.get('/api/token-holders', { mint }); }
+  /** Holder breakdowns for many mints at once (comma-batched). */
+  tokenHoldersBatch(mints: string | string[]) { return this.get('/api/token-holders-batch', { mints: csv(mints) }); }
   tokenSecurity(mint: string) { return this.get('/api/token-security', { mint }); }
   tokenTopTraders(mint: string) { return this.get('/api/token-top-traders', { mint }); }
   tokenTrending() { return this.get('/api/token-trending'); }
@@ -112,18 +114,57 @@ export class Data {
   // ── market ───────────────────────────────────────────────────────────────
   marketOverview() { return this.get('/api/market-overview'); }
   marketSentiment() { return this.get('/api/market-sentiment'); }
+  /** Risk-on/risk-off regime read (breadth, momentum, volatility). */
+  marketRegime() { return this.get('/api/market-regime'); }
   newTokens() { return this.get('/api/new-tokens'); }
 
   // ── defi ─────────────────────────────────────────────────────────────────
   defiOverview() { return this.get('/api/defi-overview'); }
   yields() { return this.get('/api/yields'); }
   stakingYields() { return this.get('/api/staking-yields'); }
+  /** Top protocols by fees/revenue (DeFiLlama). `limit` ≤ 50, default 20. */
+  protocolFees(opts: { limit?: number } = {}) { return this.get('/api/protocol-fees', { limit: opts.limit }); }
 
   // ── chain ────────────────────────────────────────────────────────────────
   networkStats() { return this.get('/api/network-stats'); }
+  /** Solana ecosystem snapshot (top protocols/apps by activity). `limit` ≤ 50, default 20. */
+  solanaEcosystem(opts: { limit?: number } = {}) { return this.get('/api/solana-ecosystem', { limit: opts.limit }); }
   news() { return this.get('/api/news'); }
   validators() { return this.get('/api/validators'); }
   bridgeActivity() { return this.get('/api/bridge-activity'); }
   nftOverview() { return this.get('/api/nft-overview'); }
   topPools() { return this.get('/api/top-pools'); }
+
+  // ── price feed (real-time, free) ───────────────────────────────────────────
+  // The on-chain reserve-based pricing engine (proxied via circuit-price-feed):
+  // live SOL/token prices, slippage, and short-term history/candles. Free, rate-
+  // limited; distinct from the aggregated `tokenPrice`/`tokenOhlcv` above.
+  /** Current SOL/USD oracle price. */
+  solPrice() { return this.get('/api/price-feed/sol-price'); }
+  /** Live single-token price (priceSol + priceUsd + source + age). */
+  livePrice(mint: string) { return this.get(`/api/price-feed/price/${encodeURIComponent(mint)}`); }
+  /** Live prices for up to 20 mints (comma-batched). */
+  livePrices(mints: string | string[]) { return this.get('/api/price-feed/prices', { mints: csv(mints) }); }
+  /** Enriched token card: live price + on-chain metadata. */
+  priceCard(mint: string) { return this.get(`/api/price-feed/token/${encodeURIComponent(mint)}`); }
+  /** Top tokens by on-chain CPMM volume. `limit` ≤ 50, default 20. */
+  priceFeedTrending(opts: { limit?: number } = {}) { return this.get('/api/price-feed/trending', { limit: opts.limit }); }
+  /** Raw pool state (reserves, type, mints) for a pool account. */
+  poolState(poolAccount: string) { return this.get(`/api/price-feed/pool/${encodeURIComponent(poolAccount)}`); }
+  /** Sell-side price-impact estimate for `tokenAmount` of `mint`. */
+  slippageSell(mint: string, tokenAmount: number, opts: { decimals?: number } = {}) {
+    return this.get(`/api/price-feed/slippage/sell/${encodeURIComponent(mint)}`, { tokenAmount, decimals: opts.decimals });
+  }
+  /** Buy-side price-impact estimate for `solAmount` SOL into `mint`. */
+  slippageBuy(mint: string, solAmount: number, opts: { decimals?: number } = {}) {
+    return this.get(`/api/price-feed/slippage/buy/${encodeURIComponent(mint)}`, { solAmount, decimals: opts.decimals });
+  }
+  /** Short-term price tick history (ring buffer). `limit` ≤ 300, default 100. */
+  priceHistory(mint: string, opts: { limit?: number } = {}) {
+    return this.get(`/api/price-feed/history/${encodeURIComponent(mint)}`, { limit: opts.limit });
+  }
+  /** OHLCV candlesticks (ring buffer). `window` ∈ 1m|5m|1h|1d (default 5m), `limit` ≤ 300. */
+  priceCandles(mint: string, opts: { window?: '1m' | '5m' | '1h' | '1d'; limit?: number } = {}) {
+    return this.get(`/api/price-feed/candles/${encodeURIComponent(mint)}`, { window: opts.window, limit: opts.limit });
+  }
 }
