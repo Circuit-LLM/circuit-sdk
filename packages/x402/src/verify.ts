@@ -40,6 +40,9 @@ export interface ReplayStore {
   add(sig: string): void;
 }
 
+// DEV-ONLY: in-memory, per-process. Behind multiple workers a payment consumed by one worker is unseen
+// by another (replay across workers + paid-but-denied on the client's retry). PROD MUST use a shared,
+// durable ReplayStore (Redis/DB) so a signature is single-use across the whole verifier fleet.
 export class MemoryReplayStore implements ReplayStore {
   private readonly seen = new Set<string>();
   has(sig: string): boolean {
@@ -118,10 +121,13 @@ export async function verifyPaymentTx(
   if (!tx) throw lastErr;
   if (tx.meta?.err) throw new Error(`Transaction failed on chain: ${JSON.stringify(tx.meta.err)}`);
 
-  // Age check — fall back to now() when blockTime is null (a very fresh tx).
-  const blockTimeMs = (tx.blockTime ?? Math.floor(now() / 1000)) * 1000;
-  if (now() - blockTimeMs > maxAgeMs) {
-    throw new Error('Transaction is too old (outside the max age window)');
+  // Age check. A confirmed tx carries blockTime → enforce the window strictly. A null blockTime
+  // (unconfirmed/just-landed) can't be aged, so we accept it ONLY when a replay store is configured to
+  // bound replay — otherwise we'd be trusting an unaged, undeduplicatable payment, so refuse.
+  if (tx.blockTime != null) {
+    if (now() - tx.blockTime * 1000 > maxAgeMs) throw new Error('Transaction is too old (outside the max age window)');
+  } else if (!replay) {
+    throw new Error('Payment tx has no blockTime and no replay store is configured — refusing (use a durable ReplayStore)');
   }
 
   const received = circReceived(tx, treasury);

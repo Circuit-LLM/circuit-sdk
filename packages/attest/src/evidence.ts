@@ -161,7 +161,10 @@ export function evidenceBacks(
   for (const ev of evidence) {
     if (ev.kind === 'signed-quote' && input in ev.data && ev.data[input] === value) return true;
     if (ev.kind === 'zktls' && input in ev.claim && ev.claim[input] === value) return true;
-    if (ev.kind === 'inference-receipt' && ev.verdict !== undefined && ev.verdict === value) return true;
+    // An inference receipt authenticates ONLY the reserved `aiVerdict` input — never an arbitrary input
+    // whose value happens to equal the verdict string (which would let a host bind an unrelated,
+    // unauthenticated input to any value colliding with the verdict).
+    if (ev.kind === 'inference-receipt' && input === 'aiVerdict' && ev.verdict !== undefined && ev.verdict === value) return true;
   }
   return false;
 }

@@ -13,7 +13,8 @@ function tx(opts: { received?: bigint; treasury?: string; blockTime?: number | n
   const treasury = opts.treasury ?? 'TREASURY';
   const recv = opts.received ?? 300_000_000n;
   return {
-    blockTime: opts.blockTime ?? null,
+    // a confirmed tx carries a (fresh) blockTime by default; pass blockTime:null to exercise that path
+    blockTime: opts.blockTime === undefined ? Math.floor(Date.now() / 1000) : opts.blockTime,
     meta: {
       err: opts.err ?? null,
       preTokenBalances: [{ accountIndex: 1, mint: CIRC_MINT, owner: treasury, uiTokenAmount: { amount: '0' } }],
@@ -43,6 +44,16 @@ test('verifyPaymentTx rejects an insufficient payment', async () => {
     () => verifyPaymentTx('SIG', 300_000_000n, { connection: conn(tx({ received: 1_000_000n })), treasury: 'TREASURY' }),
     /Insufficient/,
   );
+});
+
+test('null blockTime is refused without a replay store, accepted with one (E3)', async () => {
+  await assert.rejects(
+    () => verifyPaymentTx('SIG', 300_000_000n, { connection: conn(tx({ blockTime: null })), treasury: 'TREASURY' }),
+    /no blockTime and no replay store/,
+  );
+  const replay = new MemoryReplayStore();
+  const r = await verifyPaymentTx('SIG', 300_000_000n, { connection: conn(tx({ blockTime: null })), treasury: 'TREASURY', replay });
+  assert.equal(r.received, 300_000_000n);
 });
 
 test('verifyPaymentTx rejects a failed transaction', async () => {
