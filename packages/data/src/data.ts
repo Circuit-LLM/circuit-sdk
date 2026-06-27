@@ -10,6 +10,10 @@ export interface DataOptions {
   x402?: X402Client;
   wallet?: PaymentWallet;
   maxSpendRaw?: bigint;
+  /** Pin payments to the Circuit treasury (recommended) — refuse a 402 demanding any other recipient. */
+  allowedRecipients?: string[];
+  /** Cumulative CIRC budget (raw) across all calls — bounds a hostile endpoint to a total, not per-call. */
+  maxTotalSpendRaw?: bigint;
   onPay?: (quote: PaymentQuote) => void | Promise<void>;
   config?: CircuitConfig;
   /** Override the data API base (else config.endpoints.data). */
@@ -35,6 +39,8 @@ export class Data {
       new X402Client({
         wallet: opts.wallet,
         maxSpendRaw: opts.maxSpendRaw,
+        allowedRecipients: opts.allowedRecipients,
+        maxTotalSpendRaw: opts.maxTotalSpendRaw,
         onPay: opts.onPay,
         fetchImpl,
       });

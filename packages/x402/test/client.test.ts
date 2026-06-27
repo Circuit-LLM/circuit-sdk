@@ -4,6 +4,8 @@ import {
   X402Client,
   PaymentRequiredError,
   SpendCapError,
+  RecipientNotAllowedError,
+  BudgetExceededError,
   X402RequestError,
   type PaymentWallet,
 } from '../src/client.ts';
@@ -105,6 +107,30 @@ test('json() throws X402RequestError on a non-2xx final response', async () => {
     () => c.json('http://x'),
     (e: unknown) => e instanceof X402RequestError && e.status === 404 && (e.body as any).error === 'nope',
   );
+});
+
+test('recipient pin: an endpoint demanding payment to an unknown address is refused WITHOUT paying', async () => {
+  let called = false;
+  const wallet: PaymentWallet = { async sendCirc() { called = true; return 'x'; } };
+  const c = new X402Client({ wallet, allowedRecipients: ['TREASURY'] });
+  // honest recipient pays; evil recipient is rejected before any send
+  await c.request(async (x) => (x['X-Payment-Signature'] ? resp(200, {}) : resp(402, QUOTE)));
+  assert.equal(called, true);
+  called = false;
+  const evil = { payment: { recipient: 'ATTACKER', amountRaw: '1', amountDisplay: '0', token: 'm' } };
+  await assert.rejects(() => c.request(async () => resp(402, evil)), RecipientNotAllowedError);
+  assert.equal(called, false, 'never paid the attacker');
+});
+
+test('cumulative budget: a hostile endpoint cannot take the per-call cap on every request', async () => {
+  let sends = 0;
+  const wallet: PaymentWallet = { async sendCirc() { sends++; return 'SIG'; } };
+  // budget = 500M; each quote is 300M → first call pays (300M), second would hit 600M > 500M → refused
+  const c = new X402Client({ wallet, maxTotalSpendRaw: 500_000_000n });
+  await c.request(async (x) => (x['X-Payment-Signature'] ? resp(200, {}) : resp(402, QUOTE)));
+  assert.equal(c.totalSpentRaw, 300_000_000n);
+  await assert.rejects(() => c.request(async () => resp(402, QUOTE)), BudgetExceededError);
+  assert.equal(sends, 1, 'second payment never happened — budget guarded');
 });
 
 test('onPay hook fires before the wallet is charged', async () => {

@@ -34,6 +34,24 @@ export class SpendCapError extends Error {
   }
 }
 
+export class RecipientNotAllowedError extends Error {
+  readonly quote: PaymentQuote;
+  constructor(quote: PaymentQuote) {
+    super(`402 recipient ${quote.recipient} is not in the allowed treasury set — refusing to pay`);
+    this.name = 'RecipientNotAllowedError';
+    this.quote = quote;
+  }
+}
+
+export class BudgetExceededError extends Error {
+  readonly quote: PaymentQuote;
+  constructor(quote: PaymentQuote, spentRaw: bigint, budgetRaw: bigint) {
+    super(`Paying ${quote.amountRaw} would exceed the session budget (${spentRaw}/${budgetRaw} raw CIRC spent)`);
+    this.name = 'BudgetExceededError';
+    this.quote = quote;
+  }
+}
+
 export class X402RequestError extends Error {
   readonly status: number;
   readonly body: unknown;
@@ -56,6 +74,12 @@ export interface X402Options {
   wallet?: PaymentWallet;
   /** Hard ceiling (raw CIRC base units) per call — refuse to pay a higher quote. */
   maxSpendRaw?: bigint;
+  /** Pin the payment recipient: refuse any 402 whose recipient isn't in this set (the Circuit
+   *  treasury / known payee). Without it, a malicious endpoint dictates where your CIRC goes. */
+  allowedRecipients?: string[];
+  /** Cumulative ceiling (raw CIRC base units) across ALL calls this client makes — the real drain
+   *  guard, since maxSpendRaw alone lets a hostile endpoint take the cap on every request. */
+  maxTotalSpendRaw?: bigint;
   /** Approval/notification hook; may be async. Throw inside it to abort the payment. */
   onPay?: (quote: PaymentQuote) => void | Promise<void>;
   fetchImpl?: typeof fetch;
@@ -74,17 +98,25 @@ const TRANSIENT = new Set([429, 500, 502, 503, 504]);
 export class X402Client {
   private readonly wallet?: PaymentWallet;
   private readonly maxSpendRaw?: bigint;
+  private readonly allowedRecipients?: Set<string>;
+  private readonly maxTotalSpendRaw?: bigint;
   private readonly onPay?: X402Options['onPay'];
   private readonly fetchImpl: typeof fetch;
   private readonly retryDelayMs: number;
+  private spentRaw = 0n; // cumulative CIRC paid by this client
 
   constructor(opts: X402Options = {}) {
     this.wallet = opts.wallet;
     this.maxSpendRaw = opts.maxSpendRaw;
+    this.allowedRecipients = opts.allowedRecipients ? new Set(opts.allowedRecipients) : undefined;
+    this.maxTotalSpendRaw = opts.maxTotalSpendRaw;
     this.onPay = opts.onPay;
     this.fetchImpl = opts.fetchImpl ?? fetch;
     this.retryDelayMs = opts.retryDelayMs ?? 2000;
   }
+
+  /** Total CIRC (raw base units) this client has paid so far. */
+  get totalSpentRaw(): bigint { return this.spentRaw; }
 
   /** Generic pay-and-retry. `requestFn(extraHeaders)` performs one request; on 402 it
    *  is called a second time with the X-Payment-Signature header. */
@@ -101,9 +133,19 @@ export class X402Client {
     if (this.maxSpendRaw != null && quote.amountRaw > this.maxSpendRaw) {
       throw new SpendCapError(quote, this.maxSpendRaw);
     }
+    // The recipient + amount come from the (untrusted) endpoint. Pin the recipient to the known
+    // treasury and bound the cumulative spend, so a hostile endpoint can't redirect CIRC to itself
+    // or take the per-call cap on every request.
+    if (this.allowedRecipients && !this.allowedRecipients.has(quote.recipient)) {
+      throw new RecipientNotAllowedError(quote);
+    }
+    if (this.maxTotalSpendRaw != null && this.spentRaw + quote.amountRaw > this.maxTotalSpendRaw) {
+      throw new BudgetExceededError(quote, this.spentRaw, this.maxTotalSpendRaw);
+    }
 
     await this.onPay?.(quote);
     const txSig = await this.wallet.sendCirc(quote.recipient, quote.amountRaw);
+    this.spentRaw += quote.amountRaw; // count it once, after the send is initiated
 
     resp = await requestFn({ 'X-Payment-Signature': txSig });
     // One free retry on transient server errors — the CIRC is already spent.
