@@ -88,7 +88,7 @@ A rejected intent never throws — it resolves to `{ ok: false, code, error }`. 
 
 ### What a host can — and can't — do
 
-Your agent's code runs on a stranger's machine, so every guarantee comes from the **off-box signer** —
+Your agent's code runs on a stranger's machine, so every protection comes from the **off-box signer** —
 never from trusting the host. The boundary:
 
 | A malicious host… | …because |

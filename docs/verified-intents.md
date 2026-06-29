@@ -1,6 +1,6 @@
 # Verified Intents
 
-Your agent runs on **someone else's CPU**. Off-box custody already guarantees the host can never *drain*
+Your agent runs on **someone else's CPU**. Off-box custody already keeps the host from ever *draining*
 the wallet — the signer's only verbs are `buy` and `sell`. But that still leaves one gap: a hostile host
 could submit an *in-policy* `buy`/`sell` **of its own choosing**, griefing your agent within your caps.
 
@@ -35,7 +35,7 @@ signer rejects it — `decision-unjustified`, `evidence-invalid`, `input-mismatc
 
 ## What it protects (and what it doesn't)
 
-| Tier | Your strategy | Guarantee |
+| Tier | Your strategy | Property |
 |---|---|---|
 | **T1 — deterministic rule** | `buy if price < X and bounce > Y` over signed/zkTLS inputs | **fully prevented** — the signer re-runs the rule; the host can't forge |
 | **T2 — signed AI** | decision = a **signed inference verdict** from Circuit's DLLM over signed inputs | **prevented**, *modulo trusting the mesh's signature* — the host can't fake the verdict |

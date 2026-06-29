@@ -156,7 +156,7 @@ npx circuit-agent new my-bot
 
 ### Trust & safety
 
-Your agent runs on a stranger's CPU, and the guarantees hold anyway:
+Your agent runs on a stranger's CPU, and the protections hold anyway:
 
 - **No drain.** The signer's only verbs are `buy`/`sell` — no transfer/withdraw — so a hostile host can never move funds out. Period.
 - **No forged trades** — with **[Verified Intents](docs/verified-intents.md)**. Commit a decision rule, and the signer re-runs it on *authenticated* inputs (signed data / inference receipts / zkTLS) and signs **only** the trade that rule produces. A host that fully controls the agent still can't make it trade on its own terms — a tampered agent, faked data, or a host-chosen trade is rejected before signing. Pure software, any CPU.
