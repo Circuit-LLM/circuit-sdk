@@ -6,12 +6,14 @@
   "license": "UNLICENSED",
   "type": "module",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "apps/*"
   ],
   "engines": {
     "node": ">=22"
   },
   "scripts": {
+    "cli": "node apps/cli/bin/circuit.js",
     "test": "node --experimental-strip-types --conditions=development --test packages/*/test/*.test.ts",
     "typecheck": "for p in core x402 attest inference data wallet agent node onchain bundle vault sdk; do tsc -p packages/$p/tsconfig.json || exit 1; done",
     "build": "for p in core x402 attest inference data wallet agent node onchain bundle vault sdk; do (cd packages/$p && npx tsup src/index.ts --format esm --dts --clean --out-dir dist) || exit 1; done"
