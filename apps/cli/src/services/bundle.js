@@ -3,45 +3,19 @@
 // The format MUST stay byte-identical to circuit-agent-cloud/lib/bundle.js, or a node/control-plane
 // will reject what we publish: same canonical manifest signing bytes, same Ed25519 over them, same
 // base58, same sha256 of the tarball. (Cross-repo consistency is locked by a test.)
-import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import zlib from 'node:zlib';
-import bs58 from 'bs58';
 import { loadKeypair } from './solana.js';
+// The CANONICAL signing/crypto comes from @circuit/bundle — ONE source of truth across the CLI,
+// circuit-agent-cloud, and the SDK, so a bundle the CLI signs always verifies on a node (the cross-repo
+// byte-identity that bundle-consistency.test.mjs locks). The content PACKER below stays CLI-local on
+// purpose: it is cross-platform (no system `tar`) and excludes secret-shaped files — neither of which
+// the SDK's packer does.
+import { manifestSigningBytes, BUNDLE_SCHEMA, isSafeEntry, fromSeed, sign, base58, sha256hex } from '@circuit/bundle';
 
-export const BUNDLE_SCHEMA = 1;
-
-// Ed25519 PKCS8 framing (RFC 8410) — reconstruct a signing key from a Solana keypair's 32-byte seed.
-const PKCS8_PREFIX = Buffer.from('302e020100300506032b657004220420', 'hex');
-
-// MUST stay byte-identical to circuit-agent-cloud/lib/bundle.js manifestSigningBytes (locked by a test).
-function canonResources(r) {
-  return r ? { maxCpu: r.maxCpu ?? null, maxMemoryMb: r.maxMemoryMb ?? null } : null;
-}
-export function manifestSigningBytes(m) {
-  const canon = {
-    agentId: m.agentId,
-    egress: Array.isArray(m.egress) ? [...m.egress].sort() : [],
-    entry: m.entry,
-    resources: canonResources(m.resources),
-    runtime: m.runtime,
-    schema: BUNDLE_SCHEMA,
-    sdk: m.sdk ?? null,
-    sha256: m.sha256,
-  };
-  return Buffer.from(JSON.stringify(canon));
-}
-
-const isSafeEntry = (e) => typeof e === 'string' && /^[\w][\w.-]*$/.test(e) && e !== '.' && e !== '..' && !e.includes('/');
-
-function signWithSeed(seed32, msg) {
-  const priv = crypto.createPrivateKey({ key: Buffer.concat([PKCS8_PREFIX, Buffer.from(seed32)]), format: 'der', type: 'pkcs8' });
-  return crypto.sign(null, Buffer.from(msg), priv); // null algo == Ed25519
-}
-
-const sha256hex = (b) => crypto.createHash('sha256').update(b).digest('hex');
+export { manifestSigningBytes, BUNDLE_SCHEMA };
 
 // ── what NEVER goes in a bundle ───────────────────────────────────────────────────────────────
 // A bundle is content-addressed, signed, and pulled onto an UNTRUSTED host, then unpacked and run.
@@ -196,7 +170,7 @@ export function publishDir({ dir, agentId, entry = 'agent.js', sdk = null, runti
     schema: BUNDLE_SCHEMA, agentId, runtime, entry, sdk, egress, resources, sha256,
     publisherPubkey: kp.publicKey.toBase58(),
   };
-  manifest.sig = bs58.encode(signWithSeed(kp.secretKey.slice(0, 32), manifestSigningBytes(manifest)));
+  manifest.sig = base58(sign(fromSeed(kp.secretKey.slice(0, 32)).priv, manifestSigningBytes(manifest)));
 
   const root = storeRoot();
   fs.mkdirSync(root, { recursive: true });
