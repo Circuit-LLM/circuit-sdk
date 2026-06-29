@@ -24,6 +24,13 @@ import { loadKeypairFromEnv } from './keypair.ts';
 
 const JUP = 'https://lite-api.jup.ag/swap/v1';
 
+// Public RPCs tried (in order) when the primary hits its rate limit / credit cap or stalls. Ported from
+// circuit-cli. Re-broadcasting a signed tx is idempotent (fixed signature), so failover is safe on sends
+// as well as reads.
+const FALLBACK_RPCS = ['https://api.mainnet-beta.solana.com', 'https://rpc.ankr.com/solana'];
+const isRateLimited = (e: unknown): boolean =>
+  /429|Too Many Requests|max usage|rate limit/i.test((e as { message?: string } | null)?.message ?? '');
+
 export interface WalletOptions {
   keypair?: Keypair | null;
   /** Read-only mode: watch this address (no signing). */
@@ -31,12 +38,15 @@ export interface WalletOptions {
   config?: CircuitConfig;
   /** Inject a connection (for tests / custom RPC); else built from rpcUrl/config. */
   connection?: Connection;
+  /** Inject a list of connections to fail over across (tests / advanced); else [primary, ...fallbacks]. */
+  connections?: Connection[];
   rpcUrl?: string;
 }
 
 export class Wallet implements PaymentWallet {
   readonly keypair: Keypair | null;
-  readonly connection: Connection;
+  readonly connection: Connection; // the primary (back-compat); reads/sends fail over across `connections`
+  private readonly connections: Connection[];
   readonly address: string | null;
   readonly readOnly: boolean;
   private readonly circMint: PublicKey;
@@ -54,8 +64,14 @@ export class Wallet implements PaymentWallet {
         : null;
     this.address = this.pubkey ? this.pubkey.toBase58() : null;
     this.readOnly = !this.keypair;
-    this.connection =
-      opts.connection ?? new Connection(opts.rpcUrl ?? cfg.rpcUrl, { commitment: 'confirmed' });
+    const primary = opts.rpcUrl ?? cfg.rpcUrl;
+    const urls = [primary, ...FALLBACK_RPCS].filter((u, i, a) => !!u && a.indexOf(u) === i);
+    this.connections =
+      opts.connections ??
+      (opts.connection
+        ? [opts.connection]
+        : urls.map((u) => new Connection(u, { commitment: 'confirmed', disableRetryOnRateLimit: true })));
+    this.connection = this.connections[0]!; // the primary
     this.circMint = new PublicKey(cfg.circMint);
     this.tokenProgram = new PublicKey(cfg.circTokenProgram);
     this.decimals = cfg.circDecimals;
@@ -63,7 +79,8 @@ export class Wallet implements PaymentWallet {
 
   async solBalance(): Promise<number | null> {
     if (!this.pubkey) return null;
-    const lamports = await this.connection.getBalance(this.pubkey, 'confirmed');
+    const pk = this.pubkey;
+    const lamports = await this.withRpc((c) => c.getBalance(pk, 'confirmed'));
     return lamports / LAMPORTS_PER_SOL;
   }
 
@@ -71,7 +88,7 @@ export class Wallet implements PaymentWallet {
     if (!this.pubkey) return 0;
     const ata = getAssociatedTokenAddressSync(this.circMint, this.pubkey, false, this.tokenProgram);
     try {
-      const r = await this.connection.getTokenAccountBalance(ata, 'confirmed');
+      const r = await this.withRpc((c) => c.getTokenAccountBalance(ata, 'confirmed'));
       return Number(r.value.amount) / 10 ** this.decimals;
     } catch {
       return 0; // no ATA yet = zero balance
@@ -88,7 +105,7 @@ export class Wallet implements PaymentWallet {
       createAssociatedTokenAccountIdempotentInstruction(kp.publicKey, toAta, to, this.circMint, this.tokenProgram),
       createTransferCheckedInstruction(fromAta, this.circMint, toAta, kp.publicKey, amountRaw, this.decimals, [], this.tokenProgram),
     );
-    return sendAndConfirmTransaction(this.connection, tx, [kp], { commitment: 'confirmed' });
+    return this.withRpc((c) => sendAndConfirmTransaction(c, tx, [kp], { commitment: 'confirmed' }));
   }
 
   async sendSol(toAddress: string, sol: number): Promise<string> {
@@ -100,7 +117,7 @@ export class Wallet implements PaymentWallet {
         lamports: Math.round(sol * LAMPORTS_PER_SOL),
       }),
     );
-    return sendAndConfirmTransaction(this.connection, tx, [kp], { commitment: 'confirmed' });
+    return this.withRpc((c) => sendAndConfirmTransaction(c, tx, [kp], { commitment: 'confirmed' }));
   }
 
   /** Jupiter quote (read-only). amount = base units of inputMint. */
@@ -140,9 +157,32 @@ export class Wallet implements PaymentWallet {
     const { swapTransaction } = (await swapResp.json()) as { swapTransaction: string };
     const tx = VersionedTransaction.deserialize(Buffer.from(swapTransaction, 'base64'));
     tx.sign([kp]);
-    const sig = await this.connection.sendRawTransaction(tx.serialize(), { maxRetries: 3 });
-    await this.connection.confirmTransaction(sig, 'confirmed');
+    const sig = await this.withRpc(async (c) => {
+      const s = await c.sendRawTransaction(tx.serialize(), { maxRetries: 3 });
+      await c.confirmTransaction(s, 'confirmed');
+      return s;
+    });
     return { sig, quote };
+  }
+
+  // Try each RPC in turn; advance to the next on a rate-limit error OR a per-try timeout (a capped RPC
+  // sometimes hangs rather than throwing). A real (non-rate-limit) error propagates immediately.
+  private async withRpc<T>(fn: (c: Connection) => Promise<T>, perTryMs = 25_000): Promise<T> {
+    let last: unknown;
+    for (const conn of this.connections) {
+      try {
+        return await Promise.race([
+          fn(conn),
+          new Promise<never>((_, reject) => {
+            setTimeout(() => reject(Object.assign(new Error('rpc timeout'), { _timeout: true })), perTryMs).unref();
+          }),
+        ]);
+      } catch (e) {
+        last = e;
+        if (!isRateLimited(e) && !(e as { _timeout?: boolean } | null)?._timeout) throw e;
+      }
+    }
+    throw last;
   }
 
   private requireKeypair(): Keypair {

@@ -59,3 +59,26 @@ test('Wallet satisfies the PaymentWallet shape (sendCirc present)', () => {
   const w = new Wallet({ keypair: generateKeypair(), connection: stubConn({}) });
   assert.equal(typeof w.sendCirc, 'function');
 });
+
+test('withRpc fails over to the next RPC on a rate-limit error', async () => {
+  let firstTried = false;
+  const failing = {
+    async getBalance() {
+      firstTried = true;
+      throw new Error('429 Too Many Requests');
+    },
+  } as unknown as Connection;
+  const w = new Wallet({ keypair: generateKeypair(), connections: [failing, stubConn({ sol: 2 })] });
+  assert.equal(await w.solBalance(), 2, 'falls over to the second RPC');
+  assert.equal(firstTried, true, 'the primary was tried first');
+});
+
+test('withRpc does NOT fail over on a real (non-rate-limit) error', async () => {
+  const boom = {
+    async getBalance() {
+      throw new Error('invalid param: pubkey');
+    },
+  } as unknown as Connection;
+  const w = new Wallet({ keypair: generateKeypair(), connections: [boom, stubConn({ sol: 9 })] });
+  await assert.rejects(() => w.solBalance(), /invalid param/, 'a real error propagates, no silent failover');
+});
