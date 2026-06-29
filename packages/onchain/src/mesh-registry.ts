@@ -74,7 +74,7 @@ export function decodeNode(address: string, data: Buffer): MeshNode {
     node: base58(data.subarray(8, 40)),
     role,
     trust,
-    banned: data.readUInt8(42) === 1,
+    banned: data.readUInt8(42) !== 0, // canonical Borsh bool: any non-zero byte is true
     payoutWallet: base58(data.subarray(43, 75)),
     stakePool: base58(data.subarray(75, 107)),
     joinedAt: Number(data.readBigInt64LE(107)),

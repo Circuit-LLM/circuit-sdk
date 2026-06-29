@@ -120,6 +120,11 @@ test('decodeNode maps enum 0 → orchestrator/probation and rejects a bad discri
 
   const bad = nodeAccount({ node: Buffer.alloc(32), payout: Buffer.alloc(32), stakePool: Buffer.alloc(32), disc: 'ffffffffffffffff' });
   assert.throws(() => decodeNode('x', bad), /bad discriminator/);
+
+  // canonical Borsh bool: any non-zero byte at the `banned` offset decodes as true
+  const rawBanned = nodeAccount({ node: Buffer.alloc(32), payout: Buffer.alloc(32), stakePool: Buffer.alloc(32) });
+  rawBanned.writeUInt8(2, 42);
+  assert.equal(decodeNode('x', rawBanned).banned, true);
 });
 
 test('decodeMeshConfig reads variable-length model_fp + slots', () => {
