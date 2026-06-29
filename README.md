@@ -17,7 +17,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178c6)](https://www.typescriptlang.org)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D22-brightgreen)](https://nodejs.org)
 [![Python](https://img.shields.io/badge/python-%3E%3D3.10-3776ab)](https://www.python.org)
-[![Tests](https://img.shields.io/badge/tests-93%20passing-success)](#testing)
+[![Tests](https://img.shields.io/badge/tests-155%20passing-success)](#testing)
 [![Status](https://img.shields.io/badge/status-beta-orange)](#status--roadmap)
 
 > **Beta software.** The Circuit SDK is under active development. Expect breaking changes between releases, incomplete features, and rough edges. Agents move real value (trades + x402 payments) — use small amounts until you're comfortable with how it behaves.
@@ -117,8 +117,10 @@ One npm workspace of scoped packages (`@circuit/sdk` re-exports them all), plus 
 | **`@circuit/agent`** | **The agent runtime** — `CircuitAgent` base class + off-box custody + verified-intent mode + local mock + scaffold. | core · inference · data · attest |
 | **`@circuit/attest`** | **[Verified Intents](docs/verified-intents.md)** — sign/verify evidence, the rule DSL + evaluator, and the signer's decision gate. **Zero deps** (beyond core). | core |
 | **`@circuit/node`** | Join/manage a mesh node from code (control plane + public registry). | core |
-| **`@circuit/onchain`** | CIRC balance + StakePoint stake verification via pure JSON-RPC. **No web3.js.** | core |
-| **`@circuit/sdk`** | Batteries-included meta-package — re-exports everything. | all |
+| **`@circuit/onchain`** | CIRC balance + StakePoint stake verification + `mesh_registry` control-plane reads, via pure JSON-RPC. **No web3.js.** | core |
+| **`@circuit/bundle`** | Build, sign, verify & unpack content-addressed agent bundles — the canonical codec shared with the cloud + CLI. **Zero deps.** | — |
+| **`@circuit/vault`** | Drive the non-custodial circuit-agent-vault on-chain; `makeVaultExecutor` plugs into `@circuit/agent`. **Opt-in (Anchor).** | anchor |
+| **`@circuit/sdk`** | Batteries-included meta-package — re-exports the consume + agent + contributor packages (bundle/vault are direct imports). | all |
 | **`circuit-py`** | Python consume client — inference + data + x402. **Stdlib only.** | — |
 
 Full reference: **[docs/packages.md](docs/packages.md)**.
@@ -196,7 +198,8 @@ packages/
   inference/ │ data/ │ wallet/        the consume layer
   agent/     CircuitAgent + off-box custody + scaffold (the agent runtime)
   node/      │ onchain/               the contributor layer
-  sdk/       meta-package (re-exports all)
+  bundle/    │ vault/                 agent bundles · non-custodial vault client (opt-in)
+  sdk/       meta-package (re-exports the consume + agent + contributor packages)
 circuit-py/  Python consume client (inference + data + x402)
 ```
 
@@ -204,8 +207,8 @@ circuit-py/  Python consume client (inference + data + x402)
 
 ```bash
 npm install
-npm test            # 81 TS tests, zero-transpile
-npm run typecheck   # tsc --noEmit, all 9 packages
+npm test            # 143 TS tests, zero-transpile
+npm run typecheck   # tsc --noEmit, all 12 packages
 npm run build       # tsup → dist/*.js + .d.ts (publishing)
 cd circuit-py && python3 -m unittest discover -s tests   # 12 Python tests
 ```
@@ -216,7 +219,7 @@ Design + rationale in **[SDK.md](SDK.md)** and **[docs/architecture.md](docs/arc
 
 ## Status & roadmap
 
-**Beta.** All nine TypeScript packages + the Python client are built, extracted faithfully from the live ecosystem, and covered by **93 tests** (81 TS + 12 Python), all typecheck-clean. The full roadmap — spine → consume → agents → contributor — is complete.
+**Beta.** All twelve TypeScript packages + the Python client are built, extracted faithfully from the live ecosystem, and covered by **155 tests** (143 TS + 12 Python), all typecheck-clean. The full roadmap — spine → consume → agents → contributor → extended (bundles · vault · on-chain control-plane reads) — is complete.
 
 Working today: paid inference + data, CIRC wallet ops, the `CircuitAgent` runtime over off-box custody (with a local mock), the mesh + registry clients, and on-chain stake reads. Next: streaming for `circuit-py`, a Solana `PaymentWallet` for Python, and the first public npm release (version bump + publish).
 

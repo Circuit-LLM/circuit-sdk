@@ -1,0 +1,25 @@
+{
+  "name": "@circuit/bundle",
+  "version": "0.0.0",
+  "description": "Circuit SDK agent bundles — build, sign, verify, and unpack content-addressed (sha256) signed agent bundles. The canonical codec shared by circuit-agent-cloud + circuit-cli.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "exports": {
+    ".": {
+      "development": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "test": "node --experimental-strip-types --conditions=development --test test/*.test.ts",
+    "typecheck": "tsc -p tsconfig.json",
+    "build": "tsup src/index.ts --format esm --dts --clean --out-dir dist",
+    "prepack": "tsup src/index.ts --format esm --dts --clean --out-dir dist"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ]
+}

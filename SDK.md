@@ -1,6 +1,6 @@
 # Circuit SDK — Specification
 
-**Status:** SPEC / v0 (pre-implementation). The document we build against; design first.
+**Status:** IMPLEMENTED / v0. 12 `@circuit/*` packages + a Python consume client; 143 tests green, typecheck + dist build clean. This spec describes the shipped code and stays the contract we build against.
 **Repo:** `Circuit-LLM/circuit-sdk` (private).
 **One line:** the developer toolkit for building on the Circuit ecosystem — **x402-paid decentralized
 inference, data, and wallet ops**, and **hosted autonomous agents with off-box (non-custodial)
@@ -261,22 +261,48 @@ mesh control-plane `/register · /ready · /heartbeat · /drain · /topology` pr
 stays in the node client/image; the SDK exposes the *control* surface for "spin up / manage a node from
 code."
 
-### 4.9 `@circuit/onchain` — CIRC · StakePoint · mesh_registry  ·  status: EXTRACT
+### 4.9 `@circuit/onchain` — CIRC · StakePoint · mesh_registry  ·  status: ✅ BUILT
 
 Pure-RPC reads (the project's convention — `getProgramAccounts` + memcmp + discriminator), ported from
 `circuit-node-client/lib/stakepoint.js`: `verifyStake(wallet, pool, minAmount)`, `getStakePositions`,
-CIRC balance helpers, and (later) readers for the `mesh_registry` Anchor program. No heavy Anchor
-client on the read path.
+CIRC balance helpers, and readers for the on-chain control-plane `mesh_registry` Anchor program
+(devnet `BC2sxffu…`): `getMeshConfig()` (topology/authority/auditor/version), `getNodes()` and
+`getNode(pubkey)` (each node's role/trust/ban/payout/stake-pool, decoded from the 124-byte account).
+No heavy Anchor client on the read path.
 
-### 4.10 `@circuit/sdk` — meta-package  ·  status: BUILD (trivial)
+### 4.10 `@circuit/sdk` — meta-package  ·  status: ✅ BUILT
 
-Re-exports the others so `import { Inference, Data, CircuitAgent } from '@circuit/sdk'` works for the
-batteries-included case.
+Re-exports the consume + agent + contributor packages so `import { Inference, Data, CircuitAgent } from
+'@circuit/sdk'` works for the batteries-included case. `@circuit/bundle` (publishing) and `@circuit/vault`
+(on-chain, pulls Anchor) are intentionally **not** re-exported here — import them directly so the meta
+package stays lean and web3-free.
 
 ### 4.11 `circuit-py` — Python consume client  ·  status: ✅ BUILT (`circuit-py/`)
 
 A thin Python package for the consume side only (**inference + data + x402**), where data/ML consumers
 live. Mirrors the TS client surface; not a full port (no agent runtime, no wallet ops beyond paying).
+
+### 4.12 `@circuit/bundle` — agent bundles  ·  status: ✅ BUILT
+
+The canonical codec for **content-addressed, signed agent bundles**: `createBundle` (pack a dir → gzipped
+tarball, hash, sign the manifest), `verifyBundle` (sha256 + Ed25519 sig + owner-binding + safe-entry
+checks before any byte runs), `packDir`/`unpackTo`, and the Ed25519/base58/sha256 primitives. The manifest
+signing bytes are a **cross-implementation contract** with `circuit-agent-cloud/lib/bundle.js` and
+`circuit-cli/src/services/bundle.js`; a golden test vector pins byte-identity so the three impls can't
+drift. Zero runtime deps (Node crypto + system `tar`). Follow-on: point the cloud + CLI at this package
+as the single source to retire the duplicate copies.
+
+### 4.13 `@circuit/vault` — non-custodial vault client  ·  status: ✅ BUILT (opt-in)
+
+The off-chain client for the **circuit-agent-vault** Anchor program (devnet `9AmhsDD9…`): `VaultClient`
+mirrors every instruction (init/deposit/withdraw/setDelegate/updateConfig/setRoutes/setRule/close/
+wrap/unwrap), `trade()` is the **route-agnostic swap adapter** (wraps ANY DEX instruction as a guarded
+vault CPI), `jupiterSwapInstruction` is the production route source, and **`makeVaultExecutor`** is the
+concrete executor that plugs into `@circuit/agent`'s `VaultCustody` (paper=false) to land real on-chain
+trades signed by the trade-only delegate. **Opt-in:** it pulls `@anchor-lang/core` (a peer dependency),
+so the lean core stays web3-free — install it only when you want on-chain vault custody. The IDL is
+vendored from the vault repo's `anchor build`; this is the canonical home (the `circuit-agent-vault/client/`
+copy becomes a re-export — tracked follow-on).
 
 ## 5. Cross-cutting
 
@@ -312,6 +338,7 @@ live. Mirrors the TS client surface; not a full port (no agent runtime, no walle
 | **1 — consume SDK** ✅ | `@circuit/inference` + `@circuit/data` + `@circuit/wallet` + `@circuit/sdk` meta | **DONE** — extracted onto the spine; 50 tests green (`circuit-py` deferred) |
 | **2 — agent runtime** ✅ | `@circuit/agent` (base class · custody client · `MockCustody` · scaffold) | **DONE** — `CircuitAgent` over off-box custody; 64 tests green |
 | **3 — contribute** ✅ | `@circuit/node` + `@circuit/onchain` | **DONE** — mesh control + node registry + StakePoint/CIRC reads; 81 tests green |
+| **4 — extended** ✅ | `@circuit/bundle` + `@circuit/vault` + `@circuit/onchain` mesh_registry reader | **DONE** — content-addressed signed bundles (cross-impl golden vector), the non-custodial vault client + `makeVaultExecutor`, and on-chain control-plane reads; **143 tests green total**, typecheck + dist build clean |
 
 **MVP (end of Phase 1):** `npm i @circuit/sdk`, load a wallet, call `inference.chat()` and
 `data.tokenPrice()` with automatic CIRC payment — a working, documented quickstart.

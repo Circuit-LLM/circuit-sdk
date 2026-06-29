@@ -1,0 +1,31 @@
+{
+  "name": "@circuit/vault",
+  "version": "0.0.0",
+  "description": "Circuit SDK vault client — drive the non-custodial circuit-agent-vault Anchor program: owner lifecycle, the route-agnostic trade adapter, a Jupiter route source, and makeVaultExecutor (the concrete executor for @circuit/agent's VaultCustody). Opt-in: pulls @anchor-lang/core.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "exports": {
+    ".": {
+      "development": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "test": "node --experimental-strip-types --conditions=development --test test/*.test.ts",
+    "typecheck": "tsc -p tsconfig.json",
+    "build": "tsup src/index.ts --format esm --dts --clean --out-dir dist",
+    "prepack": "tsup src/index.ts --format esm --dts --clean --out-dir dist"
+  },
+  "peerDependencies": {
+    "@anchor-lang/core": "^1.1.1"
+  },
+  "devDependencies": {
+    "@anchor-lang/core": "^1.1.1"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ]
+}
