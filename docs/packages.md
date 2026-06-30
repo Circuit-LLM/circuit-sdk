@@ -6,15 +6,17 @@ batteries-included **`@circuit/sdk`** to get everything, or depend on exactly th
 | Package | One-liner |
 |---------|-----------|
 | [`@circuit/x402`](#circuitx402) | the payment spine — pay/verify x402 in CIRC (zero deps) |
-| [`@circuit/core`](#circuitcore) | http · config · ed25519 identity · types (zero deps) |
+| [`@circuit/core`](#circuitcore) | http · config · ed25519 identity · owner-auth · types (zero deps) |
 | [`@circuit/inference`](#circuitinference) | OpenAI-compatible DLLM client |
 | [`@circuit/data`](#circuitdata) | typed Circuit Data API client |
-| [`@circuit/wallet`](#circuitwallet) | SOL/CIRC balances, transfers, swaps |
+| [`@circuit/wallet`](#circuitwallet) | SOL/CIRC balances, transfers, swaps (multi-RPC failover) |
 | [`@circuit/agent`](#circuitagent) | the `CircuitAgent` runtime (off-box custody + verified intents) |
 | [`@circuit/attest`](#circuitattest) | verified intents — sign/verify evidence, rule DSL, decision gate |
 | [`@circuit/node`](#circuitnode) | join/manage a mesh node from code |
-| [`@circuit/onchain`](#circuitonchain) | StakePoint stake + CIRC balance (pure RPC) |
-| [`@circuit/sdk`](#circuitsdk) | meta-package — re-exports all of the above |
+| [`@circuit/onchain`](#circuitonchain) | StakePoint stake + CIRC balance + mesh_registry reads (pure RPC) |
+| [`@circuit/bundle`](#circuitbundle) | build/sign/verify content-addressed agent bundles (zero deps) |
+| [`@circuit/vault`](#circuitvault) | drive the non-custodial on-chain vault (opt-in: Anchor) |
+| [`@circuit/sdk`](#circuitsdk) | meta-package — re-exports the consume + agent + contributor packages |
 | [`circuit-py`](#circuit-py) | Python consume client (inference + data + x402) |
 
 ---
@@ -74,6 +76,12 @@ verifyRequest(fields, body?): boolean;
 stableStringify(obj): string;
 loadOrCreateIdentity(path): Promise<Identity>;                     // opt-in filesystem helper
 
+// owner-auth — per-owner control-plane request signing (the wallet IS the identity; byte-identical to
+// circuit-agent-cloud, golden-vector locked). The CLI signs with it; a server verifies with it.
+ownerAuthHeaders(method, path, body, signer: { secretKey; address }, opts?): Record<string,string>;
+verifyOwnerRequest({ method, path, body, headers }, opts?): string | null;   // owner pubkey, or throws (401)
+ownerAuthMessage({ method, path, body, ts, nonce }): string;   class NonceStore {}
+
 interface ChatMessage { role: 'system'|'user'|'assistant'|'tool'; content: string; }
 ```
 
@@ -131,7 +139,7 @@ SOL + CIRC (Token-2022) operations. `Wallet` implements `PaymentWallet`, so it p
 
 ```ts
 class Wallet implements PaymentWallet {
-  constructor(opts?: { keypair?; address?; config?; connection?; rpcUrl? });
+  constructor(opts?: { keypair?; address?; config?; connection?; connections?; rpcUrl? });
   solBalance(): Promise<number | null>;
   circBalance(): Promise<number>;
   sendCirc(to: string, amountRaw: bigint): Promise<string>;   // Token-2022 transfer
@@ -147,8 +155,10 @@ keypairFromSecret(input): Keypair;  loadKeypairFromEnv(env?): Keypair | null;
 generateKeypair(): Keypair;  secretKeyBase58(kp): string;  isValidAddress(s): boolean;
 ```
 
-Depends on `@solana/web3.js`, `@solana/spl-token`, `bs58` — the only "heavy" package. Inject a
-`connection` for tests or a custom RPC.
+Reads and sends **fail over** across `[primary, …public fallbacks]` on a rate-limit or per-try timeout;
+transactions are signed **once** against a fresh blockhash, so a retry on another RPC re-broadcasts the
+same bytes and can never double-spend. Depends on `@solana/web3.js`, `@solana/spl-token`, `bs58` — the
+only "heavy" package. Inject `connection`/`connections` for tests or a custom RPC.
 
 ---
 
@@ -251,18 +261,64 @@ verifyStake(wallet, pool, minAmount, opts: RpcOptions & { decimals? }): Promise<
 circBalance(wallet, opts: RpcOptions & { mint? }): Promise<number>;
 rpcCall<T>(opts, method, params): Promise<T>;   class RpcError {}
 const STAKEPOINT_PROGRAM_ID;
+
+// mesh_registry — the on-chain DLLM control plane (topology + per-node membership/trust/ban)
+getMeshConfig(opts: RpcOptions): Promise<MeshConfig | null>;        // authority · auditor · model · slots · version
+getNodes(opts: RpcOptions): Promise<MeshNode[]>;   getNode(nodePubkey, opts): Promise<MeshNode | null>;
+const MESH_REGISTRY_PROGRAM_ID;
 // RpcOptions = { rpcUrl: string; fetchImpl?: typeof fetch; timeoutMs?: number }
+```
+
+---
+
+## `@circuit/bundle`
+
+Content-addressed, signed **agent bundles** — the canonical codec shared with `circuit-agent-cloud` + the
+CLI (byte-identical signing, golden-vector locked). A cross-platform packer (no system `tar`) that
+**excludes secret-shaped files** (`.env`, keypairs, `.ssh/`, …) and honors `.gitignore`/`.circuitignore`.
+**Zero runtime dependencies.**
+
+```ts
+createBundle({ dir, agentId, runtime?, entry?, sdk?, egress?, resources?, priv, publisherPubkey })
+  : { bytes; sha256; manifest; files; excludedSecrets };
+verifyBundle(bytes, manifest, { expectedOwner?, expectedAgentId? }): { ok; code? };
+packDir(dir): { bytes; sha256; files; excludedSecrets };   unpackTo(bytes, destDir): string;
+manifestSigningBytes(m): Buffer;  signManifest(m, priv): string;  verifyManifest(m): boolean;  isSafeEntry(e): boolean;
+// crypto: fromSeed(seed), sign(priv, msg), verify(pubkey, msg, sig), base58, base58decode, sha256hex
+```
+
+---
+
+## `@circuit/vault`
+
+The off-chain client for the non-custodial **circuit-agent-vault** Anchor program — the agent can *trade*
+the vault but never *withdraw* (the owner is the sole withdraw authority, enforced on-chain). **Opt-in:**
+pulls `@anchor-lang/core`, so install it only when you want on-chain vault custody.
+
+```ts
+loadVaultProgram(connection, wallet): Program<CircuitAgentVault>;
+class VaultClient {
+  vaultPda(owner, agentSeed);  fetch(ref);
+  initVault(p); deposit(ref, …); withdraw(ref, …); setDelegate(ref, …); updateConfig(ref, …);
+  setRoutes(ref, …); setRule(ref, …); closeVault(ref, …); wrapSol(…); unwrapSol(…);
+  trade(p): Promise<string>;                          // the route-agnostic, on-chain-guarded swap adapter
+}
+makeVaultExecutor(opts): { execute(intent, vi?) };    // the concrete executor for @circuit/agent's VaultCustody
+jupiterSwapInstruction(q, vaultAuthority, fetchFn?);  // the production route source (Jupiter)
 ```
 
 ---
 
 ## `@circuit/sdk`
 
-The meta-package. `export *` from all of the above (collision-free) so you can:
+The meta-package. `export *` from the consume + agent + contributor packages (collision-free) so you can:
 
 ```ts
 import { Inference, Data, makeWallet, X402Client, CircuitAgent, MeshControl, verifyStake } from '@circuit/sdk';
 ```
+
+`@circuit/bundle` and `@circuit/vault` are **not** re-exported here — import them directly. (Bundle is a
+publish-time tool; vault pulls Anchor, so the meta stays lean.)
 
 ---
 

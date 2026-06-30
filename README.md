@@ -75,6 +75,12 @@ ai = Inference(wallet=my_wallet)             # any object with send_circ(recipie
 print(ai.chat([{"role": "user", "content": "hi"}])["content"])
 ```
 
+**Or skip the code** — the interactive `circuit` console ships in this repo (`apps/cli`), built on the SDK:
+
+```bash
+npm install && npm run build && npm run cli   # chat · wallet · data · swarm · agent hosting, from the terminal
+```
+
 No API keys. Set `maxSpendRaw` to cap per-call spend, or `internalKey` to bypass payment on trusted hosts. Read-only data and the mesh topology need **no wallet at all**.
 
 > **CIRC token CA:** `8fQgfsRnRkKSeNUhevT7wp8mhNvMSJdLn1fJi4oVpump` · [Pump.fun](https://pump.fun/coin/8fQgfsRnRkKSeNUhevT7wp8mhNvMSJdLn1fJi4oVpump)
@@ -243,7 +249,7 @@ Working today: paid inference + data, CIRC wallet ops, the `CircuitAgent` runtim
 
 [Website](https://circuitllm.xyz) · [OPS Terminal](https://circuitllm.xyz/data) · [Telegram](https://t.me/circuitllm) · [X / Twitter](https://x.com/CircuitLLM)
 
-Part of the Circuit ecosystem — alongside [circuit-cli](https://github.com/Circuit-LLM/circuit-cli) (the terminal), [circuit-agent-cloud](https://github.com/Circuit-LLM/circuit-agent-cloud) (agent hosting), and the decentralized DLLM engine.
+Part of the Circuit ecosystem. The `circuit` terminal CLI now ships **in this repo** (`apps/cli`), built on the SDK — alongside [circuit-agent-cloud](https://github.com/Circuit-LLM/circuit-agent-cloud) (agent hosting), [circuit-agent-vault](https://github.com/Circuit-LLM/circuit-agent-vault) (the non-custodial vault), and the decentralized DLLM engine.
 
 ---
 

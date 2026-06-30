@@ -20,20 +20,24 @@ roadmap), see **[SDK.md](../SDK.md)**.
 circuit-sdk/
   packages/
     x402/        the payment spine (402 → pay CIRC → retry · verify)     ← zero deps
-    core/        http · config (DI) · ed25519 identity · types           ← zero deps
+    core/        http · config (DI) · ed25519 identity · owner-auth · types   ← zero deps
     inference/   OpenAI-compatible DLLM client
     data/        typed Circuit Data API client
-    wallet/      SOL/CIRC ops + Jupiter swaps          (+ @solana/web3.js)
+    wallet/      SOL/CIRC ops + Jupiter swaps + RPC failover    (+ @solana/web3.js)
     agent/       CircuitAgent + off-box custody + scaffold + bin
     node/        mesh control plane + public registry clients
-    onchain/     StakePoint stake + CIRC balance (pure RPC)
-    sdk/         meta-package — re-exports all
+    onchain/     StakePoint stake + CIRC balance + mesh_registry reads (pure RPC)
+    bundle/      content-addressed signed agent bundles               ← zero deps
+    vault/       non-custodial on-chain vault client          (opt-in: @anchor-lang/core)
+    sdk/         meta-package — re-exports the consume + agent + contributor packages
+  apps/
+    cli/         the `circuit` terminal console — built on the SDK (npm run cli)
   circuit-py/    Python consume client (inference + data + x402)         ← stdlib only
   SDK.md         the design spec
   docs/          this documentation
 ```
 
-npm workspaces (`packages/*`). `circuit-py` sits outside the workspace (it's Python).
+npm workspaces (`packages/*` + `apps/*`). `circuit-py` sits outside the workspace (it's Python).
 
 ---
 
@@ -59,9 +63,10 @@ npm workspaces (`packages/*`). `circuit-py` sits outside the workspace (it's Pyt
   sdk = meta (re-exports everything) · circuit-py = independent Python port
 ```
 
-Two packages — **`@circuit/x402`** and **`@circuit/core`** — have **zero runtime dependencies**. Only
-`@circuit/wallet` pulls anything heavy (`@solana/web3.js`, `@solana/spl-token`, `bs58`), so consumers who
-just want inference + data never install Solana.
+Three packages — **`@circuit/x402`**, **`@circuit/core`**, and **`@circuit/bundle`** — have **zero
+runtime dependencies**. `@circuit/wallet` pulls Solana (`@solana/web3.js`, `@solana/spl-token`, `bs58`)
+and the **opt-in** `@circuit/vault` pulls Anchor (`@anchor-lang/core`); consumers who just want inference
++ data install neither.
 
 ---
 
@@ -113,8 +118,8 @@ npm run build      # each package: tsup src/index.ts → dist/index.js (ESM) + d
 ## Testing
 
 ```bash
-npm test            # 81 TS tests across all packages, zero-transpile (node:test + strip-types)
-npm run typecheck   # tsc --noEmit on all 9 packages (strict + noUncheckedIndexedAccess)
+npm test            # 151 TS tests across all packages, zero-transpile (node:test + strip-types)
+npm run typecheck   # tsc --noEmit on all 12 packages (strict + noUncheckedIndexedAccess)
 cd circuit-py && python3 -m unittest discover -s tests   # 12 Python tests
 ```
 
