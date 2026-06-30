@@ -27,6 +27,7 @@
   "dependencies": {
     "@circuit/bundle": "*",
     "@circuit/core": "*",
+    "@circuit/wallet": "*",
     "@clack/prompts": "^0.7.0",
     "@solana/spl-token": "^0.4.6",
     "@solana/web3.js": "^1.95.2",
