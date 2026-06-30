@@ -60,13 +60,16 @@ Read-only features (market data, the swarm, network health) need **no wallet at 
 
 ## Quick Start
 
-```bash
-git clone https://github.com/Circuit-LLM/circuit-cli
-cd circuit-cli
-npm install
-npm link                 # optional — exposes `circuit` globally
+The CLI ships inside the **circuit-sdk** monorepo (`apps/cli`) and runs on the `@circuit/*` packages:
 
-circuit                  # open the interactive console
+```bash
+git clone https://github.com/Circuit-LLM/circuit-sdk
+cd circuit-sdk
+npm install
+npm run build            # build the @circuit/* packages the CLI imports
+
+npm run cli              # open the interactive console
+# or, to expose `circuit` globally:  npm link -w apps/cli
 ```
 
 > `npm install` may report a few advisories from the **Solana SDK's transitive dependencies** — they're known, not exploitable here, and **`npm audit fix --force` will break the CLI** (it downgrades the SDK to 2019 versions). See [SECURITY.md](SECURITY.md#dependencies--npm-audit).

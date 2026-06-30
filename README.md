@@ -209,7 +209,7 @@ circuit-py/  Python consume client (inference + data + x402)
 
 ```bash
 npm install
-npm test            # 143 TS tests, zero-transpile
+npm test            # 151 TS tests, zero-transpile
 npm run typecheck   # tsc --noEmit, all 12 packages
 npm run build       # tsup → dist/*.js + .d.ts (publishing)
 cd circuit-py && python3 -m unittest discover -s tests   # 12 Python tests
