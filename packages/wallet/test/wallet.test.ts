@@ -59,3 +59,58 @@ test('Wallet satisfies the PaymentWallet shape (sendCirc present)', () => {
   const w = new Wallet({ keypair: generateKeypair(), connection: stubConn({}) });
   assert.equal(typeof w.sendCirc, 'function');
 });
+
+test('withRpc fails over to the next RPC on a rate-limit error', async () => {
+  let firstTried = false;
+  const failing = {
+    async getBalance() {
+      firstTried = true;
+      throw new Error('429 Too Many Requests');
+    },
+  } as unknown as Connection;
+  const w = new Wallet({ keypair: generateKeypair(), connections: [failing, stubConn({ sol: 2 })] });
+  assert.equal(await w.solBalance(), 2, 'falls over to the second RPC');
+  assert.equal(firstTried, true, 'the primary was tried first');
+});
+
+test('sendCirc signs ONCE and re-broadcasts identical bytes on failover (no double-spend)', async () => {
+  const kp = generateKeypair();
+  const blockhash = generateKeypair().publicKey.toBase58(); // a valid 32-byte base58, usable as a blockhash
+  const seenRaw: string[] = [];
+  let bhCalls = 0;
+  const mk = (send: () => string) =>
+    ({
+      async getLatestBlockhash() {
+        bhCalls++;
+        return { blockhash, lastValidBlockHeight: 1 };
+      },
+      async sendRawTransaction(raw: Uint8Array) {
+        seenRaw.push(Buffer.from(raw).toString('base64'));
+        return send();
+      },
+      async confirmTransaction() {
+        return { value: { err: null } };
+      },
+    }) as unknown as Connection;
+  const c1 = mk(() => {
+    throw new Error('429 Too Many Requests'); // first RPC rate-limits the broadcast → failover
+  });
+  const c2 = mk(() => 'SIG');
+  const w = new Wallet({ keypair: kp, connections: [c1, c2] });
+
+  const sig = await w.sendCirc(generateKeypair().publicKey.toBase58(), 1000n);
+  assert.equal(sig, 'SIG', 'failover returns the signature from the second RPC');
+  assert.equal(seenRaw.length, 2, 'broadcast attempted on both RPCs');
+  assert.equal(seenRaw[0], seenRaw[1], 'IDENTICAL signed bytes — signed once, never re-signed (no double-spend)');
+  assert.equal(bhCalls, 1, 'blockhash fetched once, not per-send');
+});
+
+test('withRpc does NOT fail over on a real (non-rate-limit) error', async () => {
+  const boom = {
+    async getBalance() {
+      throw new Error('invalid param: pubkey');
+    },
+  } as unknown as Connection;
+  const w = new Wallet({ keypair: generateKeypair(), connections: [boom, stubConn({ sol: 9 })] });
+  await assert.rejects(() => w.solBalance(), /invalid param/, 'a real error propagates, no silent failover');
+});

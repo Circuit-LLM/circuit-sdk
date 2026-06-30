@@ -159,6 +159,8 @@ const ai = new Inference({ internalKey: process.env.CIRCUIT_INTERNAL_KEY });   /
 
 ## Next steps
 
+- **Run the CLI** — `npm run cli` opens the interactive `circuit` console (it lives in `apps/cli`, built
+  on this SDK — chat, wallet, data, swarm, and agent hosting from the terminal).
 - **[x402](./x402.md)** — how the payment loop works, and how to gate your own endpoints with it.
 - **[Packages](./packages.md)** — the full API of every package.
 - **[Agents](./agents.md)** — write an autonomous agent with off-box custody.

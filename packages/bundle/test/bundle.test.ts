@@ -136,8 +136,36 @@ test('packDir is content-addressed (sha256 over deterministic tar metadata)', ()
     const a = packDir(dir);
     assert.match(a.sha256, /^[0-9a-f]{64}$/);
     assert.ok(a.bytes.length > 0);
+    assert.deepEqual(a.files, ['agent.js']);
     // base58 of the sha bytes is a separate encoding path; just sanity-check it runs
     assert.ok(base58(Buffer.from(a.sha256.slice(0, 16), 'hex')).length > 0);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('packDir excludes secret-shaped files, VCS/deps, and honors .gitignore', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cbundle-secret-'));
+  try {
+    fs.writeFileSync(path.join(dir, 'agent.js'), 'console.log(1)');
+    fs.writeFileSync(path.join(dir, '.env'), 'SECRET=1'); // secret-shaped → never bundled
+    fs.writeFileSync(path.join(dir, 'my-keypair.json'), '[1,2,3]'); // secret-shaped
+    fs.writeFileSync(path.join(dir, 'debug.log'), 'noise'); // ALWAYS_IGNORE
+    fs.writeFileSync(path.join(dir, 'notes.txt'), 'keep me');
+    fs.writeFileSync(path.join(dir, '.gitignore'), 'notes.txt\n'); // user ignore
+    fs.mkdirSync(path.join(dir, 'node_modules'));
+    fs.writeFileSync(path.join(dir, 'node_modules', 'x.js'), 'dep');
+
+    const r = packDir(dir);
+    assert.ok(r.files.includes('agent.js'), 'agent.js is bundled');
+    for (const dropped of ['.env', 'my-keypair.json', 'debug.log', 'notes.txt']) {
+      assert.equal(r.files.includes(dropped), false, `${dropped} excluded (secret / ALWAYS_IGNORE / .gitignore)`);
+    }
+    assert.equal(r.files.some((f) => f.startsWith('node_modules')), false, 'node_modules excluded');
+    assert.ok(r.excludedSecrets.includes('.env'), '.env reported as a held-back secret');
+    assert.ok(r.excludedSecrets.includes('my-keypair.json'), 'keypair reported as a held-back secret');
+    // the secret bytes are not in the tarball
+    assert.equal(r.bytes.includes(Buffer.from('SECRET=1')), false, 'secret contents never enter the bundle');
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }

@@ -1,6 +1,6 @@
 # Circuit SDK — Specification
 
-**Status:** IMPLEMENTED / v0. 12 `@circuit/*` packages + a Python consume client; 143 tests green, typecheck + dist build clean. This spec describes the shipped code and stays the contract we build against.
+**Status:** IMPLEMENTED / v0. 12 `@circuit/*` packages + the `circuit` CLI (in `apps/cli`, consuming the SDK) + a Python consume client; 151 TS tests green, typecheck + dist build clean. This spec describes the shipped code and stays the contract we build against.
 **Repo:** `Circuit-LLM/circuit-sdk` (private).
 **One line:** the developer toolkit for building on the Circuit ecosystem — **x402-paid decentralized
 inference, data, and wallet ops**, and **hosted autonomous agents with off-box (non-custodial)
@@ -116,10 +116,13 @@ const res = await x402.fetch('https://inference.circuitllm.xyz/v1/chat/completio
 - **Constants:** CIRC mint `8fQgfsRnRkKSeNUhevT7wp8mhNvMSJdLn1fJi4oVpump` (Token-2022), treasury,
   6 decimals, 5-min tx TTL, single-use replay guard.
 
-### 4.2 `@circuit/core` — http · config · identity · types  ·  status: EXTRACT
+### 4.2 `@circuit/core` — http · config · identity · owner-auth · types  ·  status: ✅ BUILT
 
 The shared base. **The main change vs. circuit-cli is dependency injection** — no hardcoded
 `~/.circuit/` paths or singleton config; everything is constructor-injectable so the library embeds.
+Also home to **`owner-auth`** — per-owner control-plane request signing (`ownerAuthHeaders` /
+`verifyOwnerRequest` / `NonceStore`), byte-identical to `circuit-agent-cloud` (golden-vector locked), so
+the CLI + cloud share one signing contract.
 
 - `http`: `getJson`, `postJson`, `fetchT`, `HttpError` (from `circuit-cli/services/http.js`).
 - `config`: a `CircuitConfig` object (endpoints, RPC URL, mints, model ids) — injectable, with env +
@@ -229,8 +232,9 @@ CPU compute — custody (buy/sell) is the trading-specific add-on. So `@circuit/
 shapes**: (a) **trading agents** (with custody), (b) **general agents** (no custody — just hosted
 compute + inference + data). The base class makes custody opt-in.
 
-> Deployment (`create/start/stop/destroy`, placement, the operator's node-host) stays in `circuit-cli`
-> / `circuit-agent-cloud`; `@circuit/agent` is what you *write the agent with*. A future
+> Deployment (`create/start/stop/destroy`, placement, the operator's node-host) lives in the `circuit`
+> CLI (now `apps/cli` in this monorepo) / `circuit-agent-cloud`; `@circuit/agent` is what you *write the
+> agent with*. A future
 > `@circuit/agent-cloud` client can wrap the control-plane management API if devs want to deploy
 > programmatically.
 
@@ -338,15 +342,17 @@ copy becomes a re-export — tracked follow-on).
 | **1 — consume SDK** ✅ | `@circuit/inference` + `@circuit/data` + `@circuit/wallet` + `@circuit/sdk` meta | **DONE** — extracted onto the spine; 50 tests green (`circuit-py` deferred) |
 | **2 — agent runtime** ✅ | `@circuit/agent` (base class · custody client · `MockCustody` · scaffold) | **DONE** — `CircuitAgent` over off-box custody; 64 tests green |
 | **3 — contribute** ✅ | `@circuit/node` + `@circuit/onchain` | **DONE** — mesh control + node registry + StakePoint/CIRC reads; 81 tests green |
-| **4 — extended** ✅ | `@circuit/bundle` + `@circuit/vault` + `@circuit/onchain` mesh_registry reader | **DONE** — content-addressed signed bundles (cross-impl golden vector), the non-custodial vault client + `makeVaultExecutor`, and on-chain control-plane reads; **143 tests green total**, typecheck + dist build clean |
+| **4 — extended** ✅ | `@circuit/bundle` + `@circuit/vault` + `@circuit/onchain` mesh_registry reader | **DONE** — content-addressed signed bundles (cross-impl golden vector), the non-custodial vault client + `makeVaultExecutor`, and on-chain control-plane reads; **151 tests green total**, typecheck + dist build clean |
 
 **MVP (end of Phase 1):** `npm i @circuit/sdk`, load a wallet, call `inference.chat()` and
 `data.tokenPrice()` with automatic CIRC payment — a working, documented quickstart.
 
 ## 8. Non-goals (for now) & open questions
 
-- **Non-goals:** re-implementing the CLI's interactive UI; the GPU inference internals; programmatic
-  *deployment* of agents (stays in cli/agent-cloud until a `@circuit/agent-cloud` client is warranted).
+- **Non-goals (for the `@circuit/*` libraries):** the interactive terminal UI and agent *deployment*
+  orchestration — those live in the `circuit` CLI **app** (`apps/cli`), which now ships in this monorepo
+  and consumes the libraries; and the GPU inference internals. A `@circuit/agent-cloud` deployment client
+  can come later if warranted.
 - **Open questions:** (1) USDC alongside CIRC for x402? (today CIRC-only.) (2) browser/edge build of
   `@circuit/inference` (wallet signing in-browser)? (3) general (non-trading) agent custody — is
   "compute-only, no signer" a first-class mode in v1? (4) full ALT program resolution before
