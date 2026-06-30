@@ -63,6 +63,10 @@ const DEFAULTS = {
     // Off-box signer (custody). The control plane talks to it; the CLI uses this
     // only to read an agent's wallet/policy directly when asked.
     signer: process.env.CIRCUIT_SIGNER || 'http://127.0.0.1:18981',
+    // Local Circuit node-client API. node-client is the runtime that actually contributes CPU to the
+    // agent cloud (it vendors + supervises the agent-host); `circuit agent host` drives it over this
+    // localhost API. Default apiPort 19000; override with CIRCUIT_NODE_API.
+    nodeClient: process.env.CIRCUIT_NODE_API || 'http://127.0.0.1:19000',
   },
   links: {
     web: 'https://circuitllm.xyz',

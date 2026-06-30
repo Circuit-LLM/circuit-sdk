@@ -110,7 +110,9 @@ circuit agent host --status
 circuit agent host --off             # drain + stop
 ```
 
-Point at a control plane with `CIRCUIT_CONTROL_PLANE=<url>`. See the [agent-cloud spec](agent-cloud-spec.md). If you also run a [circuit-node-client](https://github.com/Circuit-LLM/circuit-node-client), its **Cloud** tab shows what this node is hosting.
+**How it runs.** The runtime that hosts agents is the [circuit-node-client](https://github.com/Circuit-LLM/circuit-node-client) (it bundles + supervises the agent-host). So `circuit agent host` drives a locally-running node-client over its localhost API — the same enable/disable/status as the node-client dashboard's **Cloud** tab — and `--status` reports `via node-client`. Install one with `curl -fsSL https://circuitllm.xyz/join | bash`; point at a non-default port with `CIRCUIT_NODE_API=http://localhost:<port>`.
+
+If no node-client is running, the CLI falls back to spawning the host from a local `circuit-agent-cloud` checkout (operator/dev) — set `CIRCUIT_AGENT_CLOUD_DIR=<path>`. Point at a control plane with `CIRCUIT_CONTROL_PLANE=<url>`. See the [agent-cloud spec](agent-cloud-spec.md).
 
 ---
 

@@ -68,11 +68,11 @@ async function renderList(ctx, standalone) {
         { key: 'scans', label: 'SCANS', align: 'right' },
       ]));
     }
-    const h = agents.host.status();
+    const h = await agents.host.status();
     console.log('');
     console.log(
       h.running
-        ? `  ${badge('hosting', 'ok')} ${c.muted(`contributing up to ${h.budget.maxAgents ?? '?'} agents as ${h.budget.nodeId || 'this node'}`)}`
+        ? `  ${badge('hosting', 'ok')} ${c.muted(`contributing up to ${h.budget.maxAgents ?? '?'} agents as ${h.budget.nodeId || 'this node'}`)}${h.via === 'node-client' ? c.dim(' (via node-client)') : ''}`
         : c.dim('  not contributing capacity — `circuit agent host` to lend CPU to the cloud'),
     );
   });
@@ -119,9 +119,8 @@ async function showLogs(ctx, name, tail, standalone) {
 }
 
 // ── operator: contribute capacity ──
-function hostStartFlow(maxAgents) {
-  const r = agents.host.start({ maxAgents: Number(maxAgents) || 5, maxMemoryMb: 512 });
-  return r;
+async function hostStartFlow(maxAgents) {
+  return agents.host.start({ maxAgents: Number(maxAgents) || 5, maxMemoryMb: 512 });
 }
 
 // ── non-custodial vault explainer (what it is + devnet status + Solscan link) ──
@@ -302,14 +301,14 @@ export default {
           if (fundsErr && (await askConfirm(`"${pick}" still holds funds — force-delete and ABANDON them? (irreversible)`, { initialValue: false }))) { force = true; retry = true; }
         }
       } else if (choice === 'host') {
-        const st = agents.host.status();
+        const st = await agents.host.status();
         if (st.running) {
-          const off = await askConfirm(`Hosting is on (${st.budget.maxAgents} agents). Stop contributing?`, { initialValue: false });
-          if (off) agents.host.stop();
+          const off = await askConfirm(`Hosting is on (${st.budget.maxAgents ?? '?'} agents). Stop contributing?`, { initialValue: false });
+          if (off) await agents.host.stop();
         } else {
           const n = await askText('Max agents to host', { placeholder: '5', defaultValue: '5' });
-          await screenFrame({ status: ctx.status, footer: 'press any key to continue' }, () => {
-            try { const r = hostStartFlow(n); console.log('  ' + c.ok(sym.check) + c.text(` contributing up to ${r.budget.maxAgents} agents`)); }
+          await screenFrame({ status: ctx.status, footer: 'press any key to continue' }, async () => {
+            try { const r = await hostStartFlow(n); console.log('  ' + c.ok(sym.check) + c.text(` contributing up to ${r.budget.maxAgents ?? '?'} agents`) + (r.via === 'node-client' ? c.dim(' (via node-client)') : '')); }
             catch (e) { console.log('  ' + c.err(e.message)); }
           });
         }
@@ -469,17 +468,18 @@ export default {
       .option('--max-memory <mb>', 'per-agent memory cap', (v) => parseInt(v, 10), 512)
       .option('--status', 'show hosting status')
       .option('--off', 'stop contributing')
-      .action((o) => {
-        if (o.off) { agents.host.stop(); console.log(c.muted('  stopped contributing.')); return; }
-        const st = agents.host.status();
+      .action(async (o) => {
+        const where = (s) => (s.via === 'node-client' ? ' · via node-client' : s.pid ? ' · pid ' + s.pid : '');
+        if (o.off) { await agents.host.stop(); console.log(c.muted('  stopped contributing.')); return; }
+        const st = await agents.host.status();
         if (o.status) {
-          console.log(st.running ? `  ${c.ok(sym.dot)} hosting · ${st.budget.maxAgents} agents · pid ${st.pid}` : c.dim('  not contributing'));
+          console.log(st.running ? `  ${c.ok(sym.dot)} hosting · ${st.budget.maxAgents ?? '?'} agents${where(st)}` : c.dim('  not contributing'));
           return;
         }
-        if (st.running) { console.log(c.muted(`  already hosting (${st.budget.maxAgents} agents). --off to stop.`)); return; }
+        if (st.running) { console.log(c.muted(`  already hosting (${st.budget.maxAgents ?? '?'} agents). --off to stop.`)); return; }
         try {
-          const r = agents.host.start({ maxAgents: o.maxAgents, nodeId: o.nodeId, maxMemoryMb: o.maxMemory });
-          console.log(`  ${c.ok(sym.check)} contributing up to ${c.text(r.budget.maxAgents)} agents to the cloud  ${c.dim('(pid ' + r.pid + ')')}`);
+          const r = await agents.host.start({ maxAgents: o.maxAgents, nodeId: o.nodeId, maxMemoryMb: o.maxMemory });
+          console.log(`  ${c.ok(sym.check)} contributing up to ${c.text(r.budget.maxAgents ?? '?')} agents to the cloud  ${c.dim('(' + (r.via === 'node-client' ? 'via node-client' : 'pid ' + r.pid) + ')')}`);
         } catch (e) { console.log('  ' + c.err(e.message)); }
       });
 
