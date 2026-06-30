@@ -28,7 +28,7 @@
 
 ---
 
-**[What it is](#what-it-is)** · **[Quick start](#quick-start)** · **[x402](#x402--pay-per-call-no-api-keys)** · **[Packages](#the-packages)** · **[Agents](#write-an-agent)** · **[Contribute](#contribute-a-node)** · **[How it works](#how-it-works)** · **[Docs](#docs)**
+**[What it is](#what-it-is)** · **[Quick start](#quick-start)** · **[x402](#x402--pay-per-call-no-api-keys)** · **[Packages](#the-packages)** · **[CLI](#use-the-cli)** · **[Agents](#write-an-agent)** · **[Contribute](#contribute-a-node)** · **[How it works](#how-it-works)** · **[Docs](#docs)**
 
 ---
 
@@ -130,6 +130,33 @@ One npm workspace of scoped packages (`@circuit/sdk` re-exports them all), plus 
 | **`circuit-py`** | Python consume client — inference + data + x402. **Stdlib only.** | — |
 
 Full reference: **[docs/packages.md](docs/packages.md)**.
+
+---
+
+## Use the CLI
+
+Don't want to write code? The interactive **`circuit`** console ships in this repo at `apps/cli`, built on the same `@circuit/*` packages — so it's also the reference app for the SDK.
+
+```bash
+npm install && npm run build && npm run cli   # then: npm link -w apps/cli  to put `circuit` on your PATH
+```
+
+Nine modules, all live; read-only ones need no wallet:
+
+| Module | What it does | Wallet |
+|--------|--------------|:------:|
+| `chat` | Stream the decentralized 72B, paid per call in CIRC (x402) | required |
+| `wallet` | SOL + CIRC balances, transfers, Jupiter swaps | required |
+| `agent` | Create, run & host agents (local or the mesh) over off-box custody | optional |
+| `data` · `swarm` · `network` · `node` · `status` · `about` | Market data + charts · swarm signals · network health · GPU onboarding · dashboard + `doctor` · about | — |
+
+```bash
+circuit chat "explain x402 in one line"      # watch the pay-per-call loop, with a cost meter
+circuit data token <mint>                     # price/liquidity + braille candle chart
+circuit swarm                                 # the autonomous trading agents, live
+```
+
+Guide: **[docs/cli.md](docs/cli.md)** · full command reference: **[apps/cli/docs/commands.md](apps/cli/docs/commands.md)**.
 
 ---
 
@@ -238,10 +265,13 @@ Working today: paid inference + data, CIRC wallet ops, the `CircuitAgent` runtim
 - **[SDK.md](SDK.md)** — the full specification (architecture, per-package API, the custody model, the roadmap)
 - **[docs/getting-started.md](docs/getting-started.md)** — install, connect a wallet, your first paid call (TS + Python)
 - **[docs/packages.md](docs/packages.md)** — every package's API surface
+- **[docs/cli.md](docs/cli.md)** — the `circuit` terminal console (modules, commands, config) → deep dive in **[apps/cli/](apps/cli/README.md)**
 - **[docs/x402.md](docs/x402.md)** — the payment spine, client + server
 - **[docs/agents.md](docs/agents.md)** — write + host an agent, off-box custody in depth
 - **[docs/contributing-a-node.md](docs/contributing-a-node.md)** — join the mesh, read stake on-chain
 - **[docs/architecture.md](docs/architecture.md)** — the monorepo, dual-mode build, the two identity schemes
+
+> **`npm audit` after install** reports **3 high** advisories — all transitive dependencies of the Solana SDK (`bigint-buffer` in `@solana/spl-token`'s u64 decoder), with no upstream fix and not reachable from untrusted input here. **Do not run `npm audit fix --force`** — it downgrades `@solana/web3.js`/`spl-token` to 2019-era versions and breaks the build. The `uuid` and `esbuild` advisories are already pinned out via `overrides` in the root [package.json](package.json). Details: **[apps/cli/SECURITY.md](apps/cli/SECURITY.md#dependencies--npm-audit)**.
 
 ---
 

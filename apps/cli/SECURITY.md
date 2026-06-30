@@ -64,12 +64,13 @@ Keep `CIRCUIT_WALLET` and any private RPC URLs out of logs and issue reports.
 
 ## Dependencies & `npm audit`
 
-`npm audit` will report a few advisories. They are **transitive dependencies of the standard Solana JS SDK** (`@solana/web3.js` 1.x + `@solana/spl-token` 0.4.x) — not circuit-cli code — and show up in essentially every Solana project.
+After install, `npm audit` reports **3 high** advisories — all the same **transitive dependency of the standard Solana JS SDK** (`@solana/web3.js` 1.x + `@solana/spl-token` 0.4.x), not circuit-cli code, and present in essentially every Solana project. Two earlier advisories (`uuid`, `esbuild`) are already pinned out via `overrides` in the **monorepo-root** [`package.json`](../../package.json), so they no longer appear.
 
-- **`uuid`** (GHSA-w5hq-g745-h8pq) — pulled in by the SDK's RPC client. Pinned to a patched version via `overrides` in `package.json`. Not reachable here regardless (the SDK uses `uuid.v4()`, which the advisory doesn't affect).
-- **`bigint-buffer`** (GHSA-3gc7-fjrx-p6mg) — has **no upstream fix** (the package is unmaintained). It lives in `@solana/spl-token`'s u64 decoder, used to read token-account amounts returned by your RPC. It is **not reachable from untrusted input** in this CLI — point it at an RPC you trust and the data is well-formed.
+- **`bigint-buffer`** (GHSA-3gc7-fjrx-p6mg) — the 3 remaining highs. **No upstream fix** (the package is unmaintained). It lives in `@solana/spl-token`'s u64 decoder, used to read token-account amounts returned by your RPC. **Not reachable from untrusted input** in this CLI — point it at an RPC you trust and the data is well-formed.
+- **`uuid`** (GHSA-w5hq-g745-h8pq) — *resolved.* It entered through `jayson` (web3.js's JSON-RPC layer); a `jayson`-scoped override pins it to `^11.1.1`. Wasn't reachable anyway (only `uuid.v4()` is used, which the advisory doesn't affect).
+- **`esbuild`** (GHSA-g7r4-m6w7-qqqr) — *resolved.* A build-time dependency of `tsup`; pinned to `0.28.1` via override. The bug only triggers when running esbuild's dev server, which the build never starts — nothing shipped or run is affected.
 
-> **Do not run `npm audit fix --force`.** It "fixes" these by downgrading `@solana/web3.js` to `0.0.3` and `@solana/spl-token` to `0.1.8` — 2019-era versions — which **breaks the CLI**. We track the SDK and will move to `@solana/web3.js` 2.x once it stabilizes for our use.
+> **Do not run `npm audit fix --force`.** It "fixes" the `bigint-buffer` chain by downgrading `@solana/web3.js` to `0.0.3` and `@solana/spl-token` to `0.1.8` — 2019-era versions — which **breaks the build**. We track the SDK and will move to `@solana/web3.js` 2.x once it stabilizes for our use.
 
 ---
 

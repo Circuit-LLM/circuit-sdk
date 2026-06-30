@@ -15,7 +15,7 @@
 **The command line for the Circuit LLM decentralized intelligence network. Chat with the decentralized 72B, manage the CIRC that pays for it, watch the mesh and the agent swarm, query on-chain data, and contribute a GPU — all from one beautiful terminal.**
 
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org)
-[![Version](https://img.shields.io/badge/version-0.2.0-blue)](https://github.com/Circuit-LLM/circuit-cli/releases)
+[![Version](https://img.shields.io/badge/version-0.2.1-blue)](https://github.com/Circuit-LLM/circuit-sdk/releases)
 [![Status](https://img.shields.io/badge/status-beta-orange)](https://github.com/Circuit-LLM/circuit-cli)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
 
@@ -72,7 +72,7 @@ npm run cli              # open the interactive console
 # or, to expose `circuit` globally:  npm link -w apps/cli
 ```
 
-> `npm install` may report a few advisories from the **Solana SDK's transitive dependencies** — they're known, not exploitable here, and **`npm audit fix --force` will break the CLI** (it downgrades the SDK to 2019 versions). See [SECURITY.md](SECURITY.md#dependencies--npm-audit).
+> `npm install` reports **3 high** advisories — the `bigint-buffer` chain from the **Solana SDK's transitive dependencies**, known and not exploitable here. **`npm audit fix --force` will break the build** (it downgrades the SDK to 2019 versions). See [SECURITY.md](SECURITY.md#dependencies--npm-audit).
 
 Or jump straight to anything:
 
@@ -215,10 +215,10 @@ Three layers, one rule — **`services` talk, `ui` draws, `modules` glue:**
 src/
   index.js  config.js
   core/      context · registry · menu · splash · render
-  services/  http · solana · wallet · x402 · inference · priceFeed · circuitNode · node
+  services/  http · solana · wallet · x402 · inference · priceFeed · circuitNode · node · agents · bundle · vault · owner-auth · drivers/{local,cloud}
   ui/        banner · layout · components · screen · chart · prompts
-  modules/   chat · wallet · data · swarm · network · node · status · about
-  util/      format
+  modules/   chat · wallet · data · swarm · agent · network · node · status · about
+  util/      async · format
 ```
 
 `core/registry.js` is the single source of truth — both the interactive menu and the command verbs are generated from it, so they never drift. Adding a feature is one `services` method + one `modules` screen + a line in the registry. The full design is in **[ARCHITECTURE.md](ARCHITECTURE.md)** and **[SPEC.md](SPEC.md)**.
