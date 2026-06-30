@@ -25,6 +25,57 @@ function withMeta(name, fn) {
   return fn(m, driverFor(m));
 }
 
+// Thin client for a locally-running Circuit node-client. Its cloud-host API is localhost-trusted
+// (no token needed from this machine), so the CLI can manage CPU hosting through the node-client —
+// the same enable/disable/status the dashboard's Cloud tab uses.
+const nodeClient = {
+  base: () => config.endpoints.nodeClient.replace(/\/$/, ''),
+  async _get(p, timeoutMs = 6000) {
+    const r = await fetch(nodeClient.base() + p, { signal: AbortSignal.timeout(timeoutMs) });
+    if (!r.ok) throw new Error(`node-client ${r.status}`);
+    return r.json();
+  },
+  async up() { try { await nodeClient._get('/health', 4000); return true; } catch { return false; } },
+  // Combined view: /cloud/status carries the budget + connected flag, /cloud/host/status the live child.
+  // Returns null when no node-client is reachable (→ caller falls back to the local path).
+  async cloudStatus() {
+    if (!(await nodeClient.up())) return null;
+    let s = {}; let host = {};
+    try { s = await nodeClient._get('/cloud/status'); } catch {}
+    try { host = await nodeClient._get('/cloud/host/status'); } catch {}
+    return {
+      running: !!(host.running ?? s.connected ?? s.enabled ?? false),
+      maxAgents: s.maxAgents ?? s.budget?.maxAgents ?? host.maxAgents,
+      nodeId: s.nodeId ?? host.nodeId,
+    };
+  },
+  async cloudStart(budget) {
+    const r = await fetch(nodeClient.base() + '/cloud/host/start', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        maxAgents: budget.maxAgents, maxCpu: budget.maxCpu, maxMemoryMb: budget.maxMemoryMb,
+        payoutWallet: budget.payoutWallet, controlPlane: config.endpoints.controlPlane,
+      }),
+      signal: AbortSignal.timeout(20000),
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      if (j.error === 'node-host-missing') {
+        throw new Error('the node-client is running but its agent-host runtime is missing — update the node-client (it bundles the host) and retry.');
+      }
+      throw new Error(`node-client cloud start ${r.status}: ${j.error ?? ''}`.trim());
+    }
+    return j;
+  },
+  async cloudStop() {
+    const r = await fetch(nodeClient.base() + '/cloud/host/stop', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}', signal: AbortSignal.timeout(10000),
+    });
+    if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(`node-client cloud stop ${r.status}: ${j.error ?? ''}`.trim()); }
+    return r.json();
+  },
+};
+
 export const agents = {
   exists: (name) => !!readMeta(name),
   meta: (name) => readMeta(name),
@@ -87,30 +138,43 @@ export const agents = {
     return out;
   },
 
-  // ── operator side: contribute capacity by running a node-host ──
+  // ── operator side: contribute CPU capacity to the agent cloud ──
+  //
+  // The runtime that actually hosts agents is the Circuit node-client (it vendors + supervises the
+  // agent-host). So we PREFER to drive a locally-running node-client over its localhost cloud API —
+  // the CLI is a thin manager, node-client stays the single runtime. If no node-client is running, we
+  // fall back to spawning node-host directly from a circuit-agent-cloud checkout (the operator/dev path).
   host: {
-    status() {
+    async status() {
+      const nc = await nodeClient.cloudStatus();
+      if (nc) return { via: 'node-client', running: !!nc.running, budget: { maxAgents: nc.maxAgents, nodeId: nc.nodeId } };
+      // legacy direct-spawn (a local circuit-agent-cloud checkout)
       let pid = null;
       try { pid = Number(fs.readFileSync(HOST_PID, 'utf8')); } catch {}
       const up = pid && alive(pid);
       let budget = {};
       try { budget = JSON.parse(fs.readFileSync(HOST_CFG, 'utf8')); } catch {}
-      return { running: !!up, pid: up ? pid : null, budget };
+      return { via: 'local', running: !!up, pid: up ? pid : null, budget };
     },
-    start(budget) {
-      const st = agents.host.status();
-      if (st.running) return st;
-      fs.mkdirSync(HOME_DIR, { recursive: true });
-      fs.writeFileSync(HOST_CFG, JSON.stringify(budget, null, 2));
+    async start(budget) {
+      // 1) Prefer a running node-client — the deployed runtime that bundles the host.
+      if (await nodeClient.up()) {
+        const r = await nodeClient.cloudStart(budget);
+        return { via: 'node-client', running: true, budget: { maxAgents: r.budget?.maxAgents ?? budget.maxAgents, nodeId: budget.nodeId } };
+      }
+      // 2) Fall back to a local circuit-agent-cloud checkout (operator/dev on a server with the repo).
       const hostScript = path.join(config.agentCloudDir, 'node-host', 'host.js');
       if (!fs.existsSync(hostScript)) {
         throw new Error(
-          'CPU hosting needs the Circuit agent-host runtime, which isn\'t bundled with the CLI yet. '
-          + 'If you have a circuit-agent-cloud checkout, point the CLI at it with '
-          + 'CIRCUIT_AGENT_CLOUD_DIR=<path>. To contribute a GPU instead, run the node installer:  '
-          + 'curl -fsSL https://circuitllm.xyz/join | bash',
+          'No Circuit node-client is running, and no agent-host runtime was found locally. The simplest '
+          + 'way to contribute CPU is to run a node-client (it bundles the host) and retry — install it with:  '
+          + `curl -fsSL ${config.endpoints.join} | bash   `
+          + '(or enable the Cloud tab in its dashboard). Operators with a circuit-agent-cloud checkout can '
+          + 'instead set CIRCUIT_AGENT_CLOUD_DIR=<path>.',
         );
       }
+      fs.mkdirSync(HOME_DIR, { recursive: true });
+      fs.writeFileSync(HOST_CFG, JSON.stringify(budget, null, 2));
       const out = fs.openSync(path.join(HOME_DIR, 'host.log'), 'a');
       const env = {
         ...process.env,
@@ -126,13 +190,15 @@ export const agents = {
       const child = spawn(process.execPath, [hostScript], { detached: true, stdio: ['ignore', out, out], env });
       fs.writeFileSync(HOST_PID, String(child.pid));
       child.unref();
-      return { running: true, pid: child.pid, budget };
+      return { via: 'local', running: true, pid: child.pid, budget };
     },
-    stop() {
-      const st = agents.host.status();
-      if (st.pid) { try { process.kill(st.pid, 'SIGTERM'); } catch {} }
+    async stop() {
+      if (await nodeClient.up()) { await nodeClient.cloudStop(); return { via: 'node-client', running: false }; }
+      let pid = null;
+      try { pid = Number(fs.readFileSync(HOST_PID, 'utf8')); } catch {}
+      if (pid) { try { process.kill(pid, 'SIGTERM'); } catch {} }
       try { fs.unlinkSync(HOST_PID); } catch {}
-      return { running: false };
+      return { via: 'local', running: false };
     },
   },
 };
