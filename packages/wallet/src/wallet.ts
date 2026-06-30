@@ -11,7 +11,6 @@ import {
   Transaction,
   SystemProgram,
   VersionedTransaction,
-  sendAndConfirmTransaction,
 } from '@solana/web3.js';
 import {
   getAssociatedTokenAddressSync,
@@ -105,7 +104,7 @@ export class Wallet implements PaymentWallet {
       createAssociatedTokenAccountIdempotentInstruction(kp.publicKey, toAta, to, this.circMint, this.tokenProgram),
       createTransferCheckedInstruction(fromAta, this.circMint, toAta, kp.publicKey, amountRaw, this.decimals, [], this.tokenProgram),
     );
-    return this.withRpc((c) => sendAndConfirmTransaction(c, tx, [kp], { commitment: 'confirmed' }));
+    return this.sendSigned(tx, kp);
   }
 
   async sendSol(toAddress: string, sol: number): Promise<string> {
@@ -117,7 +116,7 @@ export class Wallet implements PaymentWallet {
         lamports: Math.round(sol * LAMPORTS_PER_SOL),
       }),
     );
-    return this.withRpc((c) => sendAndConfirmTransaction(c, tx, [kp], { commitment: 'confirmed' }));
+    return this.sendSigned(tx, kp);
   }
 
   /** Jupiter quote (read-only). amount = base units of inputMint. */
@@ -163,6 +162,24 @@ export class Wallet implements PaymentWallet {
       return s;
     });
     return { sig, quote };
+  }
+
+  // Sign a legacy Transaction ONCE against a fresh blockhash, then broadcast the fixed-signature bytes.
+  // Critical for failover: because the signature is fixed, a retry on another RPC re-broadcasts the SAME
+  // transaction (Solana dedups by signature) — it can never produce a second, differently-signed tx. If
+  // we instead handed an unsigned tx to sendAndConfirmTransaction inside withRpc, each RPC would fetch a
+  // new blockhash and re-sign → two transactions could land (a double-spend).
+  private async sendSigned(tx: Transaction, kp: Keypair): Promise<string> {
+    const { blockhash } = await this.withRpc((c) => c.getLatestBlockhash('confirmed'));
+    tx.recentBlockhash = blockhash;
+    tx.feePayer = kp.publicKey;
+    tx.sign(kp);
+    const raw = tx.serialize();
+    return this.withRpc(async (c) => {
+      const sig = await c.sendRawTransaction(raw, { maxRetries: 3 });
+      await c.confirmTransaction(sig, 'confirmed');
+      return sig;
+    });
   }
 
   // Try each RPC in turn; advance to the next on a rate-limit error OR a per-try timeout (a capped RPC
