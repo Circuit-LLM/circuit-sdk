@@ -14,13 +14,19 @@
   },
   "scripts": {
     "cli": "node apps/cli/bin/circuit.js",
-    "test": "node --experimental-strip-types --conditions=development --test packages/*/test/*.test.ts",
-    "typecheck": "for p in core x402 attest inference data wallet agent node onchain bundle vault sdk; do tsc -p packages/$p/tsconfig.json || exit 1; done",
-    "build": "for p in core x402 attest inference data wallet agent node onchain bundle vault sdk; do (cd packages/$p && npx tsup src/index.ts --format esm --dts --clean --out-dir dist) || exit 1; done"
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
     "tsup": "^8.5.1",
     "typescript": "^5.7.2"
+  },
+  "overrides": {
+    "jayson": {
+      "uuid": "^11.1.1"
+    },
+    "esbuild": "^0.28.1"
   }
 }
