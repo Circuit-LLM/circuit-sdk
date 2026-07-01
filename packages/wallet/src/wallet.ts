@@ -1,5 +1,5 @@
 // Wallet — SOL + CIRC balances, transfers, and Jupiter swaps. CIRC is a Token-2022
-// mint, so transfers use the Token-2022 program. Implements @circuit/x402's
+// mint, so transfers use the Token-2022 program. Implements @circuit-llm/x402's
 // PaymentWallet (sendCirc), so it drops straight into the payment spine.
 // Ported from circuit-cli/src/services/{wallet,solana}.js.
 
@@ -17,8 +17,8 @@ import {
   createTransferCheckedInstruction,
   createAssociatedTokenAccountIdempotentInstruction,
 } from '@solana/spl-token';
-import { DEFAULT_CONFIG, type CircuitConfig } from '@circuit/core';
-import type { PaymentWallet } from '@circuit/x402';
+import { DEFAULT_CONFIG, type CircuitConfig } from '@circuit-llm/core';
+import type { PaymentWallet } from '@circuit-llm/x402';
 import { loadKeypairFromEnv } from './keypair.ts';
 import { InsufficientFundsError } from './errors.ts';
 import { warnIfDefaultPublicRpc } from './rpc-warning.ts';

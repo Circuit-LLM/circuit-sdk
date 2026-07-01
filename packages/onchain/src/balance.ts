@@ -1,6 +1,6 @@
 // CIRC balance via getTokenAccountsByOwner (jsonParsed) — pure RPC, no @solana/web3.js.
 
-import { CIRC_MINT } from '@circuit/core';
+import { CIRC_MINT } from '@circuit-llm/core';
 import { rpcCall, type RpcOptions } from './rpc.ts';
 
 interface TokenAccountsByOwner {

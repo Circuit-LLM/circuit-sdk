@@ -1,11 +1,11 @@
 // Attestation signing — ed25519 over canonical (key-sorted, compact) JSON. The public
-// key is the raw 32-byte ed25519 key, hex-encoded (same scheme @circuit/node uses for
+// key is the raw 32-byte ed25519 key, hex-encoded (same scheme @circuit-llm/node uses for
 // the mesh, so an inference receipt signed by a mesh node verifies here unchanged).
 // First-party producers (the data API, the inference gateway) sign their responses with
 // this; the agent and the signer verify with it.
 
 import crypto from 'node:crypto';
-import { stableStringify } from '@circuit/core';
+import { stableStringify } from '@circuit-llm/core';
 
 const PKCS8_PREFIX = Buffer.from('302e020100300506032b657004220420', 'hex'); // + 32-byte seed
 const SPKI_PREFIX = Buffer.from('302a300506032b6570032100', 'hex'); // + 32-byte pubkey

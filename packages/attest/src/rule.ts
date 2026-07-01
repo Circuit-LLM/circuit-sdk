@@ -32,7 +32,7 @@ export interface Rule {
 
 export type RuleInputs = Record<string, Comparable>;
 
-/** The intent shape a rule produces (structurally compatible with @circuit/agent's Intent). */
+/** The intent shape a rule produces (structurally compatible with @circuit-llm/agent's Intent). */
 export interface Intent {
   kind: 'buy' | 'sell';
   token?: string;

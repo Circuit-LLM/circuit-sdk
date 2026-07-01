@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert';
 import { Inference } from '../src/inference.ts';
-import type { PaymentWallet } from '@circuit/x402';
+import type { PaymentWallet } from '@circuit-llm/x402';
 
 function jsonResp(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });

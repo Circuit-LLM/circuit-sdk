@@ -30,11 +30,11 @@ export function scaffold(name: string): Record<string, string> {
       start: 'node --experimental-strip-types agent.ts',
     },
     dependencies: {
-      '@circuit/agent': '^0.0.0',
+      '@circuit-llm/agent': '^0.2.1',
     },
   };
 
-  const agent = `import { CircuitAgent } from '@circuit/agent';
+  const agent = `import { CircuitAgent } from '@circuit-llm/agent';
 
 // ${Cls} runs on Circuit's CPU mesh. Custody is off-box: this.buy/this.sell go to
 // the signer (which holds the key + enforces buy/sell-only policy). Locally, with no
@@ -70,7 +70,7 @@ new ${Cls}().run();
 
   const readme = `# ${id}
 
-A [Circuit](https://circuitllm.xyz) agent built with \`@circuit/agent\`.
+A [Circuit](https://circuitllm.xyz) agent built with \`@circuit-llm/agent\`.
 
 \`\`\`bash
 npm install

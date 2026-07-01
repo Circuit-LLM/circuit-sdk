@@ -1,6 +1,6 @@
-# @circuit/vault
+# @circuit-llm/vault
 
-> Drive the **non-custodial on-chain Agent Vault**: the agent's delegate key can only *trade*; you — the owner — are the sole withdraw authority, enforced on-chain. Includes a Jupiter route source and `makeVaultExecutor` for `@circuit/agent`'s `VaultCustody`.
+> Drive the **non-custodial on-chain Agent Vault**: the agent's delegate key can only *trade*; you — the owner — are the sole withdraw authority, enforced on-chain. Includes a Jupiter route source and `makeVaultExecutor` for `@circuit-llm/agent`'s `VaultCustody`.
 
 Part of the **[Circuit SDK](https://github.com/Circuit-LLM/circuit-sdk)**. [Agents & custody →](https://github.com/Circuit-LLM/circuit-sdk/blob/main/docs/agents.md)
 
@@ -9,7 +9,7 @@ Part of the **[Circuit SDK](https://github.com/Circuit-LLM/circuit-sdk)**. [Agen
 ## Install
 
 ```bash
-npm install @circuit/vault @anchor-lang/core
+npm install @circuit-llm/vault @anchor-lang/core
 ```
 
 ## Usage

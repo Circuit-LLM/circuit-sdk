@@ -6,7 +6,7 @@
 // make_ed25519_signer / make_ed25519_verifier).
 
 import crypto from 'node:crypto';
-import { stableStringify } from '@circuit/core';
+import { stableStringify } from '@circuit-llm/core';
 
 // DER wrappers for a raw 32-byte ed25519 key.
 const PKCS8_PREFIX = Buffer.from('302e020100300506032b657004220420', 'hex'); // + 32-byte seed

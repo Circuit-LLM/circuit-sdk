@@ -1,6 +1,6 @@
 """The x402 micropayment client (Python) — pay any x402 endpoint in CIRC.
 
-Mirrors @circuit/x402: on a 402, parse the quote, pay CIRC from a wallet, retry with
+Mirrors @circuit-llm/x402: on a 402, parse the quote, pay CIRC from a wallet, retry with
 X-Payment-Signature. Stdlib-only; the HTTP transport and the wallet are both injectable
 (so this is testable with no network and no Solana dependency).
 """
@@ -25,7 +25,7 @@ _TRANSIENT = {429, 500, 502, 503, 504}
 def circ_raw_from_usd(usd_price: float, circ_usd: float) -> int:
     """Raw CIRC base units for a USD price at a CIRC/USD rate. Rounds UP in RAW units
     (NOT to a whole CIRC token) so a request is charged its fair value — byte-identical
-    to the server (circuit-data-api/lib/pricing.js) + @circuit/x402. Pure + deterministic."""
+    to the server (circuit-data-api/lib/pricing.js) + @circuit-llm/x402. Pure + deterministic."""
     rate = circ_usd if circ_usd > 0 else FALLBACK_CIRC_USD
     return math.ceil((usd_price / rate) * (10 ** CIRC_DECIMALS))
 

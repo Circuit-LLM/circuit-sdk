@@ -20,10 +20,10 @@ A few decisions shape everything else:
 
 - **x402 is the spine.** Every paid capability settles the same way: a `402 Payment Required` answered
   with an on-chain CIRC micropayment, then a retry. There is one payment path and no API keys, and
-  everything that costs money depends on `@circuit/x402`.
-- **Everything depends on a tiny core.** `@circuit/core` (HTTP, config, ed25519 identity, owner-auth,
-  shared types) has zero runtime dependencies, and so do `@circuit/x402` and `@circuit/bundle`. Only
-  `@circuit/wallet` (Solana) and the opt-in `@circuit/vault` (Anchor) pull anything heavy, so a consumer
+  everything that costs money depends on `@circuit-llm/x402`.
+- **Everything depends on a tiny core.** `@circuit-llm/core` (HTTP, config, ed25519 identity, owner-auth,
+  shared types) has zero runtime dependencies, and so do `@circuit-llm/x402` and `@circuit-llm/bundle`. Only
+  `@circuit-llm/wallet` (Solana) and the opt-in `@circuit-llm/vault` (Anchor) pull anything heavy, so a consumer
   who only wants inference and data installs neither.
 - **Dependency injection over singletons.** No global config, no hardcoded paths. Every effectful
   boundary, fetch, RPC, filesystem, clock, and wallet, is injectable. That is what lets the whole suite
@@ -86,9 +86,9 @@ npm workspaces (`packages/*` + `apps/*`). `circuit-py` sits outside the workspac
   sdk = meta (re-exports everything) · circuit-py = independent Python port
 ```
 
-Three packages — **`@circuit/x402`**, **`@circuit/core`**, and **`@circuit/bundle`** — have **zero
-runtime dependencies**. `@circuit/wallet` pulls Solana (`@solana/web3.js`, `@solana/spl-token`, `bs58`)
-and the **opt-in** `@circuit/vault` pulls Anchor (`@anchor-lang/core`); consumers who just want inference
+Three packages — **`@circuit-llm/x402`**, **`@circuit-llm/core`**, and **`@circuit-llm/bundle`** — have **zero
+runtime dependencies**. `@circuit-llm/wallet` pulls Solana (`@solana/web3.js`, `@solana/spl-token`, `bs58`)
+and the **opt-in** `@circuit-llm/vault` pulls Anchor (`@anchor-lang/core`); consumers who just want inference
 + data install neither.
 
 ---
@@ -129,7 +129,7 @@ npm run build      # each package: tsup src/index.ts → dist/index.js (ESM) + d
 
 - **tsup** (esbuild) bundles each package's `src` into one ESM file, externalizing workspace deps and
   node builtins; a bundled `.d.ts` is emitted alongside.
-- `@circuit/agent` also builds its `bin/circuit-agent.ts` → `dist/circuit-agent.js` (shebang preserved),
+- `@circuit-llm/agent` also builds its `bin/circuit-agent.ts` → `dist/circuit-agent.js` (shebang preserved),
   wired as the `circuit-agent` bin.
 - `dist/` is git-ignored; `prepack` rebuilds it, so `npm publish --workspaces` always ships fresh JS +
   types. `files: ["dist"]` keeps the published tarball to compiled output only.
@@ -157,7 +157,7 @@ wallet, connection, and clock as injectable dependencies.
 
 The SDK reproduces both ed25519 identities the ecosystem uses — they are **not** interchangeable:
 
-| | `@circuit/core` `Identity` | `@circuit/node` `MeshIdentity` |
+| | `@circuit-llm/core` `Identity` | `@circuit-llm/node` `MeshIdentity` |
 |---|---|---|
 | Used by | the public node registry | the inference-mesh control plane |
 | `nodeId` | SPKI/DER public key, base64 | raw public key, hex |
@@ -166,7 +166,7 @@ The SDK reproduces both ed25519 identities the ecosystem uses — they are **not
 Both match the live servers byte-for-byte (verified by round-trip tests against the real
 `control_server.py` signer/verifier). See [contributing-a-node.md](./contributing-a-node.md).
 
-Relatedly, the **canonical JSON** these signatures are computed over uses one serializer (`@circuit/core`
+Relatedly, the **canonical JSON** these signatures are computed over uses one serializer (`@circuit-llm/core`
 `stableStringify` — sorted keys, drops `undefined` → valid JSON) that must stay byte-identical across
 repos, pinned by golden vectors. See [canonical-serialization.md](./canonical-serialization.md).
 

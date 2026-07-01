@@ -1,10 +1,10 @@
 // Typed client for the Circuit Data API. Free endpoints (quote/prices/status/probe)
 // return 200; paid endpoints answer 402 and the X402Client pays CIRC + retries.
-// Catalog from circuit-data-api (see SDK.md Appendix A). Ported onto @circuit/x402.
+// Catalog from circuit-data-api (see SDK.md Appendix A). Ported onto @circuit-llm/x402.
 
-import { DEFAULT_CONFIG, type CircuitConfig } from '@circuit/core';
-import { X402Client, type PaymentWallet, type PaymentQuote } from '@circuit/x402';
-import { verifyEvidence, type SignedQuote } from '@circuit/attest';
+import { DEFAULT_CONFIG, type CircuitConfig } from '@circuit-llm/core';
+import { X402Client, type PaymentWallet, type PaymentQuote } from '@circuit-llm/x402';
+import { verifyEvidence, type SignedQuote } from '@circuit-llm/attest';
 
 export interface DataOptions {
   x402?: X402Client;

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert';
 import { CircuitAgent, type FsLike } from '../src/agent.ts';
-import { generateAttestSigner, signQuote, type Rule, type VerifiedIntent } from '@circuit/attest';
+import { generateAttestSigner, signQuote, type Rule, type VerifiedIntent } from '@circuit-llm/attest';
 
 class MemFs implements FsLike {
   files = new Map<string, string>();

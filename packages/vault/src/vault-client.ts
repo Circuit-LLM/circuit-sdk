@@ -13,7 +13,7 @@
 // signer — pass straight through unchanged.
 //
 // CANONICAL HOME: this mirrors circuit-agent-vault/client/vault-client.ts. The vault repo's client
-// should re-export from @circuit/vault to retire the copy (tracked follow-on).
+// should re-export from @circuit-llm/vault to retire the copy (tracked follow-on).
 import * as anchor from "@anchor-lang/core";
 // NOTE: import BN/Program via the namespace (anchor.BN / anchor.Program), not as named imports —
 // @anchor-lang/core is CommonJS and the ESM loader can't resolve all of its named re-exports.

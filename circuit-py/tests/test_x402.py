@@ -30,7 +30,7 @@ class FakeWallet:
 
 class TestX402(unittest.TestCase):
     def test_circ_raw_from_usd_golden(self):
-        # GOLDEN VECTORS — byte-identical to circuit-data-api/tests/pricing.test.js + @circuit/x402.
+        # GOLDEN VECTORS — byte-identical to circuit-data-api/tests/pricing.test.js + @circuit-llm/x402.
         # Raw-unit ceil: charged fair value, never bumped to the next whole CIRC token.
         self.assertEqual(circ_raw_from_usd(0.0001, 0.0001), 1_000_000)    # 1 CIRC
         self.assertEqual(circ_raw_from_usd(0.0015, 0.001), 1_500_000)     # 1.5 CIRC (old: 2)

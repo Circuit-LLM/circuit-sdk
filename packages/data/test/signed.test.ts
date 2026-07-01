@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert';
 import { Data } from '../src/data.ts';
-import { generateAttestSigner, signQuote } from '@circuit/attest';
+import { generateAttestSigner, signQuote } from '@circuit-llm/attest';
 
 const signer = generateAttestSigner();
 

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert';
 import { Connection } from '@solana/web3.js';
-import { defineConfig } from '@circuit/core';
+import { defineConfig } from '@circuit-llm/core';
 import { Wallet } from '../src/wallet.ts';
 import { usesDefaultPublicRpc, _resetRpcWarning } from '../src/rpc-warning.ts';
 import { generateKeypair } from '../src/keypair.ts';

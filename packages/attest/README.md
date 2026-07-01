@@ -1,4 +1,4 @@
-# @circuit/attest
+# @circuit-llm/attest
 
 > The **Verified Intents** core: sign and verify authenticated inputs (signed first-party data, inference receipts, zkTLS), a safe decision-rule DSL, and the signer-side gate that re-derives a trade and rejects forgeries.
 
@@ -7,13 +7,13 @@ Part of the **[Circuit SDK](https://github.com/Circuit-LLM/circuit-sdk)**. [Veri
 ## Install
 
 ```bash
-npm install @circuit/attest
+npm install @circuit-llm/attest
 ```
 
 ## Usage
 
 ```ts
-import { evaluateRule } from '@circuit/attest';
+import { evaluateRule } from '@circuit-llm/attest';
 
 const rule = {
   id: 'dip-v1',

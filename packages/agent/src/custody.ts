@@ -18,7 +18,7 @@ import {
   type IntentResult,
   type Policy,
 } from './types.ts';
-import { decisionGate, type Rule, type VerifiedIntent } from '@circuit/attest';
+import { decisionGate, type Rule, type VerifiedIntent } from '@circuit-llm/attest';
 
 export interface SellOpts {
   /** SOL notional (paper sells). */
@@ -268,9 +268,9 @@ export class MockCustody implements Custody {
 
 // ── executor-backed custody (shared base: vault + local keypair) ──────────────
 
-/** Lands a buy/sell and returns its signature. Injected so @circuit/agent stays free of a web3/program
+/** Lands a buy/sell and returns its signature. Injected so @circuit-llm/agent stays free of a web3/program
  *  dependency — the concrete executor (Jupiter route + signing) lives where web3 is available:
- *  `walletTradeExecutor` (@circuit/wallet) for a local keypair, or the CLI/host adapter's vault
+ *  `walletTradeExecutor` (@circuit-llm/wallet) for a local keypair, or the CLI/host adapter's vault
  *  executor. When `vi` is present the executor may attach the Ed25519 oracle attestation (the vault's
  *  on-chain Verified-Intents proof). */
 export interface TradeExecutor {
@@ -391,7 +391,7 @@ export class VaultCustody extends ExecutorCustody {
 
 /**
  * Self-custody: trades are signed LOCALLY with your own keypair (via an injected executor — typically
- * `walletTradeExecutor` from @circuit/wallet). The simplest real-trading path for an agent on hardware
+ * `walletTradeExecutor` from @circuit-llm/wallet). The simplest real-trading path for an agent on hardware
  * YOU control — no signer, no vault. Same gate + rejection codes as every other mode, so identical
  * strategy code runs paper → local-keypair → signer → vault unchanged.
  *

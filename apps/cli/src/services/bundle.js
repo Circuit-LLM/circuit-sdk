@@ -1,14 +1,14 @@
 // services/bundle.js — publish an agent as a content-addressed, signed bundle (AGENT_BUNDLES.md §2-3).
 //
 // The whole codec — the cross-platform USTAR packer, secret-file exclusion, and the canonical manifest
-// signing — now lives in @circuit/bundle, ONE source of truth across the CLI, the SDK, and
+// signing — now lives in @circuit-llm/bundle, ONE source of truth across the CLI, the SDK, and
 // circuit-agent-cloud (so a bundle the CLI publishes always verifies on a node; locked by
 // bundle-consistency.test.mjs). This file is just the CLI's publish UX: load the wallet, call
 // createBundle, and drop the result in the local content-addressed store.
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { createBundle, fromSeed, manifestSigningBytes, BUNDLE_SCHEMA } from '@circuit/bundle';
+import { createBundle, fromSeed, manifestSigningBytes, BUNDLE_SCHEMA } from '@circuit-llm/bundle';
 import { loadKeypair } from './solana.js';
 
 export { manifestSigningBytes, BUNDLE_SCHEMA };

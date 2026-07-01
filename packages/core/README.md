@@ -1,4 +1,4 @@
-# @circuit/core
+# @circuit-llm/core
 
 > The tiny, zero-dependency foundation every Circuit package builds on: HTTP client, injectable config, ed25519 identity, owner-auth request signing, canonical serialization, and shared types.
 
@@ -7,13 +7,13 @@ Part of the **[Circuit SDK](https://github.com/Circuit-LLM/circuit-sdk)**. [Arch
 ## Install
 
 ```bash
-npm install @circuit/core
+npm install @circuit-llm/core
 ```
 
 ## Usage
 
 ```ts
-import { defineConfig, generateIdentity, stableStringify } from '@circuit/core';
+import { defineConfig, generateIdentity, stableStringify } from '@circuit-llm/core';
 
 const config = defineConfig({ gatewayUrl: 'https://gateway.circuitllm.xyz' });  // injectable, no globals
 const id = generateIdentity();                                                  // ed25519 keypair

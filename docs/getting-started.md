@@ -23,7 +23,7 @@ is a CIRC micropayment over [x402](./x402.md).
 |------|-----|
 | **Node.js ≥ 22** | The TypeScript SDK (uses native `fetch` + type stripping for dev) |
 | **Python ≥ 3.10** | Only if you use `circuit-py` |
-| **A Solana wallet** | Signs CIRC payments (and sends/swaps with `@circuit/wallet`) |
+| **A Solana wallet** | Signs CIRC payments (and sends/swaps with `@circuit-llm/wallet`) |
 | **CIRC + a little SOL** | Inference costs ~$0.03 in CIRC per call; SOL covers transaction fees |
 
 > **CIRC token CA:** `8fQgfsRnRkKSeNUhevT7wp8mhNvMSJdLn1fJi4oVpump` — [buy on Pump.fun](https://pump.fun/coin/8fQgfsRnRkKSeNUhevT7wp8mhNvMSJdLn1fJi4oVpump).
@@ -35,9 +35,9 @@ is a CIRC micropayment over [x402](./x402.md).
 Install the meta-package for everything, or only the packages you need:
 
 ```bash
-npm install @circuit/sdk          # everything, one import
+npm install @circuit-llm/sdk          # everything, one import
 # or pick only what you need:
-npm install @circuit/inference @circuit/wallet @circuit/x402
+npm install @circuit-llm/inference @circuit-llm/wallet @circuit-llm/x402
 ```
 
 Python:
@@ -56,13 +56,13 @@ links all packages and you can `import` them directly.
 
 ## Connect a wallet
 
-`@circuit/wallet` loads a Solana keypair, in this order:
+`@circuit-llm/wallet` loads a Solana keypair, in this order:
 
 1. **`CIRCUIT_WALLET`** — a base58 secret key in the environment (nothing written to disk)
 2. an explicit keypair you pass to `makeWallet({ keypair })`
 
 ```ts
-import { makeWallet, generateKeypair, keypairFromSecret } from '@circuit/wallet';
+import { makeWallet, generateKeypair, keypairFromSecret } from '@circuit-llm/wallet';
 
 const wallet = makeWallet();                         // from CIRCUIT_WALLET
 // or:
@@ -111,7 +111,7 @@ const wallet = makeWallet({ rpcUrl: 'https://your-rpc-provider' });
 and pass it everywhere (anything unset falls back to the live defaults):
 
 ```ts
-import { makeWallet, Inference, Data, defineConfig, configFromEnv } from '@circuit/sdk';
+import { makeWallet, Inference, Data, defineConfig, configFromEnv } from '@circuit-llm/sdk';
 
 const config = defineConfig(configFromEnv());        // env → a full config
 const wallet = makeWallet({ config });               // your RPC for payments
@@ -130,7 +130,7 @@ const ai = new Inference({ wallet, baseUrl: 'http://localhost:8000/v1' });
 ## Your first calls (TypeScript)
 
 ```ts
-import { makeWallet, Inference, Data } from '@circuit/sdk';
+import { makeWallet, Inference, Data } from '@circuit-llm/sdk';
 
 const wallet = makeWallet();
 const ai   = new Inference({ wallet });
@@ -196,9 +196,9 @@ The HTTP transport is injectable (`transport=...`) for testing without a network
 | Inference (`chat`, `chatStream`) | **yes** (paid) |
 | Paid data (`tokenPrice`, `walletAnalytics`, …) | **yes** (paid) |
 | Free data (`quote`, `prices`, `status`, `probe`) | no |
-| Mesh topology / health (`@circuit/node`) | no |
-| Stake + CIRC reads (`@circuit/onchain`) | no |
-| Sends / swaps (`@circuit/wallet`) | **yes** (a keypair) |
+| Mesh topology / health (`@circuit-llm/node`) | no |
+| Stake + CIRC reads (`@circuit-llm/onchain`) | no |
+| Sends / swaps (`@circuit-llm/wallet`) | **yes** (a keypair) |
 
 Trusted/co-located callers can skip payment entirely with an internal key:
 

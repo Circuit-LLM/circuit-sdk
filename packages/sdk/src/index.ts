@@ -1,16 +1,16 @@
 // Batteries-included: re-export the whole SDK from one entry point.
-//   import { Inference, Data, makeWallet, X402Client } from '@circuit/sdk';
+//   import { Inference, Data, makeWallet, X402Client } from '@circuit-llm/sdk';
 
-export * from '@circuit/core';
-export * from '@circuit/inference';
-export * from '@circuit/data';
-export * from '@circuit/wallet';
-export * from '@circuit/agent';
-export * from '@circuit/node';
-export * from '@circuit/onchain';
+export * from '@circuit-llm/core';
+export * from '@circuit-llm/inference';
+export * from '@circuit-llm/data';
+export * from '@circuit-llm/wallet';
+export * from '@circuit-llm/agent';
+export * from '@circuit-llm/node';
+export * from '@circuit-llm/onchain';
 
-// @circuit/attest — selective re-export (Intent comes from @circuit/agent;
-// ReplayStore/MemoryReplayStore from @circuit/x402 — avoid ambiguous star-exports).
+// @circuit-llm/attest — selective re-export (Intent comes from @circuit-llm/agent;
+// ReplayStore/MemoryReplayStore from @circuit-llm/x402 — avoid ambiguous star-exports).
 export {
   generateAttestSigner,
   attestSignerFromSeed,
@@ -24,7 +24,7 @@ export {
   sameIntent,
   normalizeRule,
   decisionGate,
-} from '@circuit/attest';
+} from '@circuit-llm/attest';
 export type {
   AttestSigner,
   SignedQuote,
@@ -40,10 +40,10 @@ export type {
   VerifiedIntent,
   GateOptions,
   GateResult,
-} from '@circuit/attest';
+} from '@circuit-llm/attest';
 
-// @circuit/x402 — re-export everything EXCEPT the CIRC_* constants, which already
-// come from @circuit/core (same values; avoids an ambiguous star-export).
+// @circuit-llm/x402 — re-export everything EXCEPT the CIRC_* constants, which already
+// come from @circuit-llm/core (same values; avoids an ambiguous star-export).
 export {
   X402Client,
   PaymentRequiredError,
@@ -59,7 +59,7 @@ export {
   MAX_TX_AGE_MS,
   JUPITER_PRICE_URL,
   FALLBACK_CIRC_USD,
-} from '@circuit/x402';
+} from '@circuit-llm/x402';
 export type {
   PaymentWallet,
   PaymentQuote,
@@ -73,4 +73,4 @@ export type {
   ReplayStore,
   VerifyOptions,
   VerifyResult,
-} from '@circuit/x402';
+} from '@circuit-llm/x402';

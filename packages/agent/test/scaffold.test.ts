@@ -9,7 +9,7 @@ test('scaffold generates a runnable starter project', () => {
   assert.ok(files['config.json']);
   const pkg = JSON.parse(files['package.json']!);
   assert.equal(pkg.name, 'my-cool-bot');
-  assert.ok(pkg.dependencies['@circuit/agent']);
+  assert.ok(pkg.dependencies['@circuit-llm/agent']);
   assert.match(files['agent.ts']!, /class MyCoolBot extends CircuitAgent/);
   assert.match(files['agent.ts']!, /new MyCoolBot\(\)\.run\(\)/);
   const cfg = JSON.parse(files['config.json']!);

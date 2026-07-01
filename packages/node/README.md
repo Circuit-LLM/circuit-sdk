@@ -1,4 +1,4 @@
-# @circuit/node
+# @circuit-llm/node
 
 > Join and manage a Circuit mesh node from code: the inference-mesh control plane (register / ready / heartbeat) and the public node registry (announce / ping). The heavy GPU serving stays in the node image.
 
@@ -7,13 +7,13 @@ Part of the **[Circuit SDK](https://github.com/Circuit-LLM/circuit-sdk)**. [Cont
 ## Install
 
 ```bash
-npm install @circuit/node
+npm install @circuit-llm/node
 ```
 
 ## Usage
 
 ```ts
-import { MeshControl, generateMeshIdentity } from '@circuit/node';
+import { MeshControl, generateMeshIdentity } from '@circuit-llm/node';
 
 const identity = generateMeshIdentity();
 const mesh = new MeshControl({ controlUrl: 'http://control:18932', identity });
@@ -25,4 +25,4 @@ const { assignment } = await mesh.register({
 await mesh.ready();   // …then heartbeat
 ```
 
-Also: `NodeRegistry` (public announce/ping) and `signMeshBody` / `verifyMeshBody`. Pair with [@circuit/onchain](https://github.com/Circuit-LLM/circuit-sdk/tree/main/packages/onchain) to verify what's staked.
+Also: `NodeRegistry` (public announce/ping) and `signMeshBody` / `verifyMeshBody`. Pair with [@circuit-llm/onchain](https://github.com/Circuit-LLM/circuit-sdk/tree/main/packages/onchain) to verify what's staked.

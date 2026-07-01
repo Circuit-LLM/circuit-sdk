@@ -1,6 +1,6 @@
 # Releasing
 
-The `@circuit/*` packages publish to npm; `circuit-py` publishes to PyPI separately.
+The `@circuit-llm/*` packages publish to npm; `circuit-py` publishes to PyPI separately.
 
 ## Before publishing
 
@@ -11,7 +11,7 @@ npm test                 # TS suite green
 npm run build            # every package produces dist/*.js + .d.ts
 ```
 
-Bump the version across the workspace (all `@circuit/*` packages share one version, and their
+Bump the version across the workspace (all `@circuit-llm/*` packages share one version, and their
 internal dependency pins must match). Commit the bump on a clean tree.
 
 ## Publish the TypeScript packages
@@ -20,7 +20,7 @@ Publishing order matters: the packages depend on each other with exact version p
 be published only after everything it depends on. `scripts/publish.sh` encodes that order.
 
 ```bash
-npm login                        # an account with publish rights on the @circuit scope
+npm login                        # an account with publish rights on the @circuit-llm scope
 scripts/publish.sh --dry-run     # inspect the tarballs — change nothing
 scripts/publish.sh               # publish for real  (add --otp <code> if 2FA is on)
 ```

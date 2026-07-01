@@ -54,7 +54,7 @@ It's layered, and **an agent composes the whole stack** — it *thinks* (inferen
 **TypeScript** — the consume MVP, in five lines:
 
 ```ts
-import { makeWallet, Inference, Data } from '@circuit/sdk';
+import { makeWallet, Inference, Data } from '@circuit-llm/sdk';
 
 const wallet = makeWallet();                 // CIRCUIT_WALLET env, or pass a keypair
 const ai   = new Inference({ wallet });      // pays CIRC per call (x402), automatically
@@ -89,7 +89,7 @@ No API keys. Set `maxSpendRaw` to cap per-call spend, or `internalKey` to bypass
 
 ## x402 — pay per call, no API keys
 
-x402 revives HTTP's long-dormant `402 Payment Required` as a real micropayment protocol: instead of an API key and a monthly bill, **each request pays for itself, on-chain, per call.** Every paid call in the SDK runs the same loop — and `@circuit/x402` makes it one line.
+x402 revives HTTP's long-dormant `402 Payment Required` as a real micropayment protocol: instead of an API key and a monthly bill, **each request pays for itself, on-chain, per call.** Every paid call in the SDK runs the same loop — and `@circuit-llm/x402` makes it one line.
 
 | Step | What happens |
 |------|--------------|
@@ -99,7 +99,7 @@ x402 revives HTTP's long-dormant `402 Payment Required` as a real micropayment p
 | **4 · Retry** | It re-sends with `X-Payment-Signature: <txSig>`; the server verifies the on-chain payment and returns the result. |
 
 ```ts
-import { X402Client } from '@circuit/sdk';
+import { X402Client } from '@circuit-llm/sdk';
 
 const x402 = new X402Client({ wallet, maxSpendRaw: 500_000_000n });   // ≤ 500 CIRC/call
 const { data } = await x402.json('https://inference.circuitllm.xyz/v1/models');
@@ -111,22 +111,22 @@ const { data } = await x402.json('https://inference.circuitllm.xyz/v1/models');
 
 ## The packages
 
-One npm workspace of scoped packages (`@circuit/sdk` re-exports them all), plus a stdlib Python client.
+One npm workspace of scoped packages (`@circuit-llm/sdk` re-exports them all), plus a stdlib Python client.
 
 | Package | What it does | Depends on |
 |---------|--------------|------------|
-| **`@circuit/x402`** | The payment spine — pay any x402 endpoint in CIRC; verify payments server-side. **Zero deps.** | — |
-| **`@circuit/core`** | http · injectable config · ed25519 identity · owner-auth (per-owner control-plane request signing) · shared types. **Zero deps.** | — |
-| **`@circuit/inference`** | OpenAI-compatible client for the DLLM mesh (`chat`, `chatStream`, `listModels`). | core · x402 |
-| **`@circuit/data`** | Typed client for 40+ Circuit Data API endpoints — full coverage (free + paid), with a generic `get()` escape hatch. | core · x402 |
-| **`@circuit/wallet`** | SOL/CIRC balances, transfers, Jupiter swaps (multi-RPC failover); implements `PaymentWallet`; `walletTradeExecutor` drives self-custody agent trading. | core · x402 · solana |
-| **`@circuit/agent`** | **The agent runtime** — `CircuitAgent` base class + four custody modes (paper · self-custody · off-box signer · non-custodial vault) + verified-intent mode + scaffold. | core · inference · data · attest |
-| **`@circuit/attest`** | **[Verified Intents](docs/verified-intents.md)** — sign/verify evidence, the rule DSL + evaluator, and the signer's decision gate. **Zero deps** (beyond core). | core |
-| **`@circuit/node`** | Join/manage a mesh node from code (control plane + public registry). | core |
-| **`@circuit/onchain`** | CIRC balance + StakePoint stake verification + `mesh_registry` control-plane reads, via pure JSON-RPC. **No web3.js.** | core |
-| **`@circuit/bundle`** | Build, sign, verify & unpack content-addressed agent bundles — the canonical codec shared with the cloud + CLI; cross-platform packer + secret-file exclusion. **Zero deps.** | — |
-| **`@circuit/vault`** | Drive the non-custodial on-chain Agent Vault; `makeVaultExecutor` plugs into `@circuit/agent`. **Opt-in (Anchor).** | anchor |
-| **`@circuit/sdk`** | Batteries-included meta-package — re-exports the consume + agent + contributor packages (bundle/vault are direct imports). | all |
+| **`@circuit-llm/x402`** | The payment spine — pay any x402 endpoint in CIRC; verify payments server-side. **Zero deps.** | — |
+| **`@circuit-llm/core`** | http · injectable config · ed25519 identity · owner-auth (per-owner control-plane request signing) · shared types. **Zero deps.** | — |
+| **`@circuit-llm/inference`** | OpenAI-compatible client for the DLLM mesh (`chat`, `chatStream`, `listModels`). | core · x402 |
+| **`@circuit-llm/data`** | Typed client for 40+ Circuit Data API endpoints — full coverage (free + paid), with a generic `get()` escape hatch. | core · x402 |
+| **`@circuit-llm/wallet`** | SOL/CIRC balances, transfers, Jupiter swaps (multi-RPC failover); implements `PaymentWallet`; `walletTradeExecutor` drives self-custody agent trading. | core · x402 · solana |
+| **`@circuit-llm/agent`** | **The agent runtime** — `CircuitAgent` base class + four custody modes (paper · self-custody · off-box signer · non-custodial vault) + verified-intent mode + scaffold. | core · inference · data · attest |
+| **`@circuit-llm/attest`** | **[Verified Intents](docs/verified-intents.md)** — sign/verify evidence, the rule DSL + evaluator, and the signer's decision gate. **Zero deps** (beyond core). | core |
+| **`@circuit-llm/node`** | Join/manage a mesh node from code (control plane + public registry). | core |
+| **`@circuit-llm/onchain`** | CIRC balance + StakePoint stake verification + `mesh_registry` control-plane reads, via pure JSON-RPC. **No web3.js.** | core |
+| **`@circuit-llm/bundle`** | Build, sign, verify & unpack content-addressed agent bundles — the canonical codec shared with the cloud + CLI; cross-platform packer + secret-file exclusion. **Zero deps.** | — |
+| **`@circuit-llm/vault`** | Drive the non-custodial on-chain Agent Vault; `makeVaultExecutor` plugs into `@circuit-llm/agent`. **Opt-in (Anchor).** | anchor |
+| **`@circuit-llm/sdk`** | Batteries-included meta-package — re-exports the consume + agent + contributor packages (bundle/vault are direct imports). | all |
 | **`circuit-py`** | Python consume client — inference + data + x402. **Stdlib only.** | — |
 
 Full reference: **[docs/packages.md](docs/packages.md)**.
@@ -135,7 +135,7 @@ Full reference: **[docs/packages.md](docs/packages.md)**.
 
 ## Use the CLI
 
-Don't want to write code? The interactive **`circuit`** console ships in this repo at `apps/cli`, built on the same `@circuit/*` packages — so it's also the reference app for the SDK.
+Don't want to write code? The interactive **`circuit`** console ships in this repo at `apps/cli`, built on the same `@circuit-llm/*` packages — so it's also the reference app for the SDK.
 
 ```bash
 npm install && npm run build && npm run cli   # then: npm link -w apps/cli  to put `circuit` on your PATH
@@ -165,7 +165,7 @@ Guide: **[docs/cli.md](docs/cli.md)** · full command reference: **[apps/cli/doc
 The agent runtime. You extend `CircuitAgent`, implement `tick()`, and the runtime owns the rest — env wiring, off-box custody, the heartbeat, logs, and the SIGTERM lifecycle.
 
 ```ts
-import { CircuitAgent } from '@circuit/agent';
+import { CircuitAgent } from '@circuit-llm/agent';
 
 class DipBot extends CircuitAgent {
   async tick() {
@@ -206,7 +206,7 @@ Full guide — custody, lifecycle, the host can/can't table, the inference-payme
 The same SDK that *consumes* the network can *join* it — and read what's staked on-chain.
 
 ```ts
-import { MeshControl, generateMeshIdentity, verifyStake } from '@circuit/sdk';
+import { MeshControl, generateMeshIdentity, verifyStake } from '@circuit-llm/sdk';
 
 const id = generateMeshIdentity();
 const mesh = new MeshControl({ controlUrl: 'http://control:18932', identity: id });
@@ -216,7 +216,7 @@ await mesh.ready();   // …then heartbeat; the heavy GPU serving lives in the n
 const stake = await verifyStake(wallet, pool, 100_000, { rpcUrl });   // ≥ 100k CIRC staked?
 ```
 
-`@circuit/node` speaks both the inference-mesh control plane (register/heartbeat) and the public node registry (announce/ping); `@circuit/onchain` reads stake + CIRC balances with no `@solana/web3.js`. Details: **[docs/contributing-a-node.md](docs/contributing-a-node.md)**.
+`@circuit-llm/node` speaks both the inference-mesh control plane (register/heartbeat) and the public node registry (announce/ping); `@circuit-llm/onchain` reads stake + CIRC balances with no `@solana/web3.js`. Details: **[docs/contributing-a-node.md](docs/contributing-a-node.md)**.
 
 ---
 
@@ -254,7 +254,7 @@ Design principles, the dependency graph, and the build model are in **[docs/arch
 
 ## Status & roadmap
 
-**Beta.** All twelve TypeScript packages + the `circuit` CLI (in `apps/cli`) + the Python client are built, extracted faithfully from the live ecosystem, and covered by **191 tests** (179 TS + 12 Python), all typecheck-clean. The CLI lives in the monorepo and consumes `@circuit/*` directly, so the SDK is the single source for the shared logic (bundle codec, wallet, owner-auth). The full roadmap — spine → consume → agents → contributor → extended (bundles · vault · on-chain control-plane reads) — is complete.
+**Beta.** All twelve TypeScript packages + the `circuit` CLI (in `apps/cli`) + the Python client are built, extracted faithfully from the live ecosystem, and covered by **191 tests** (179 TS + 12 Python), all typecheck-clean. The CLI lives in the monorepo and consumes `@circuit-llm/*` directly, so the SDK is the single source for the shared logic (bundle codec, wallet, owner-auth). The full roadmap — spine → consume → agents → contributor → extended (bundles · vault · on-chain control-plane reads) — is complete.
 
 Working today: paid inference and data, CIRC wallet operations, the `CircuitAgent` runtime across the full custody spectrum (paper, self-custody, off-box signer, and the on-chain vault client), the mesh and registry clients, and on-chain stake reads. Planned: streaming and a native Solana `PaymentWallet` for the Python client.
 

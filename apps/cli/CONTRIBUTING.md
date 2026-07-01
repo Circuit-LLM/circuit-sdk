@@ -6,19 +6,19 @@ circuit-cli is open source under the MIT license. Contributions are welcome — 
 
 ## Development Setup
 
-The CLI lives in the **circuit-sdk** monorepo at `apps/cli` and runs on the `@circuit/*` packages, so build them once after install:
+The CLI lives in the **circuit-sdk** monorepo at `apps/cli` and runs on the `@circuit-llm/*` packages, so build them once after install:
 
 ```bash
 git clone https://github.com/Circuit-LLM/circuit-sdk
 cd circuit-sdk
 npm install
-npm run build                  # build the @circuit/* packages the CLI imports
+npm run build                  # build the @circuit-llm/* packages the CLI imports
 
 npm run cli                    # run the console        (or: node apps/cli/bin/circuit.js)
 npm run cli -- --help          # see every command
 ```
 
-Requires Node.js ≥ 22 (the monorepo's engine; the CLI runtime itself works on ≥ 18). The CLI's own UI/modules/services have no build step — they run straight from source — but rerun `npm run build` after changing a `@circuit/*` package, since the CLI imports the compiled `dist`.
+Requires Node.js ≥ 22 (the monorepo's engine; the CLI runtime itself works on ≥ 18). The CLI's own UI/modules/services have no build step — they run straight from source — but rerun `npm run build` after changing a `@circuit-llm/*` package, since the CLI imports the compiled `dist`.
 
 ---
 

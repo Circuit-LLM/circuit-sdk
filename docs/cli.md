@@ -1,7 +1,7 @@
 # The `circuit` CLI
 
 The interactive terminal console for the Circuit network. It ships **inside this monorepo** at
-[`apps/cli`](../apps/cli) and is built directly on the `@circuit/*` packages — the same x402 flow,
+[`apps/cli`](../apps/cli) and is built directly on the `@circuit-llm/*` packages — the same x402 flow,
 wallet, bundle codec, and owner-auth the SDK exposes. If the SDK is the library, the CLI is the
 reference application that proves it.
 
@@ -14,13 +14,13 @@ reference application that proves it.
 
 ## Run it
 
-The CLI runs on the built `@circuit/*` packages, so build once after cloning:
+The CLI runs on the built `@circuit-llm/*` packages, so build once after cloning:
 
 ```bash
 git clone https://github.com/Circuit-LLM/circuit-sdk
 cd circuit-sdk
 npm install
-npm run build          # compile the @circuit/* packages the CLI imports
+npm run build          # compile the @circuit-llm/* packages the CLI imports
 
 npm run cli            # open the interactive console
 # expose `circuit` on your PATH:  npm link -w apps/cli
@@ -72,7 +72,7 @@ circuit › Circuit LLM is a decentralized intelligence network…
 
 No accounts, no API keys — the request paid for itself. The generic pay-and-retry lives in
 [`apps/cli/src/services/x402.js`](../apps/cli/src/services/x402.js) and is the same logic
-[`@circuit/x402`](./x402.md) packages for libraries. Full command list:
+[`@circuit-llm/x402`](./x402.md) packages for libraries. Full command list:
 [command reference](../apps/cli/docs/commands.md).
 
 ## Configuration
@@ -84,8 +84,8 @@ overrides: `CIRCUIT_WALLET`, `CIRCUIT_RPC_URL`. Details:
 
 ## How it builds on the SDK
 
-The CLI imports `@circuit/core` (owner-auth), `@circuit/wallet` (the wallet + multi-RPC failover),
-and `@circuit/bundle` (the content-addressed bundle codec) rather than carrying its own copies — so
+The CLI imports `@circuit-llm/core` (owner-auth), `@circuit-llm/wallet` (the wallet + multi-RPC failover),
+and `@circuit-llm/bundle` (the content-addressed bundle codec) rather than carrying its own copies — so
 the shared logic has exactly one source of truth in the SDK. Adding a feature is one `services`
 method + one `modules` screen + a registry line; the layered design is in
 [ARCHITECTURE.md](../apps/cli/ARCHITECTURE.md).

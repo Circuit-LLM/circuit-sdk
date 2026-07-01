@@ -1,27 +1,27 @@
 # Packages
 
 The SDK is a TypeScript monorepo of focused, scoped packages, plus a Python consume client. Import the
-batteries-included **`@circuit/sdk`** to get everything, or depend on exactly the packages you need.
+batteries-included **`@circuit-llm/sdk`** to get everything, or depend on exactly the packages you need.
 
 | Package | One-liner |
 |---------|-----------|
-| [`@circuit/x402`](#circuitx402) | the payment spine — pay/verify x402 in CIRC (zero deps) |
-| [`@circuit/core`](#circuitcore) | http · config · ed25519 identity · owner-auth · types (zero deps) |
-| [`@circuit/inference`](#circuitinference) | OpenAI-compatible DLLM client |
-| [`@circuit/data`](#circuitdata) | typed Circuit Data API client |
-| [`@circuit/wallet`](#circuitwallet) | SOL/CIRC balances, transfers, swaps (multi-RPC failover) |
-| [`@circuit/agent`](#circuitagent) | the `CircuitAgent` runtime (off-box custody + verified intents) |
-| [`@circuit/attest`](#circuitattest) | verified intents — sign/verify evidence, rule DSL, decision gate |
-| [`@circuit/node`](#circuitnode) | join/manage a mesh node from code |
-| [`@circuit/onchain`](#circuitonchain) | StakePoint stake + CIRC balance + mesh_registry reads (pure RPC) |
-| [`@circuit/bundle`](#circuitbundle) | build/sign/verify content-addressed agent bundles (zero deps) |
-| [`@circuit/vault`](#circuitvault) | drive the non-custodial on-chain vault (opt-in: Anchor) |
-| [`@circuit/sdk`](#circuitsdk) | meta-package — re-exports the consume + agent + contributor packages |
+| [`@circuit-llm/x402`](#circuitx402) | the payment spine — pay/verify x402 in CIRC (zero deps) |
+| [`@circuit-llm/core`](#circuitcore) | http · config · ed25519 identity · owner-auth · types (zero deps) |
+| [`@circuit-llm/inference`](#circuitinference) | OpenAI-compatible DLLM client |
+| [`@circuit-llm/data`](#circuitdata) | typed Circuit Data API client |
+| [`@circuit-llm/wallet`](#circuitwallet) | SOL/CIRC balances, transfers, swaps (multi-RPC failover) |
+| [`@circuit-llm/agent`](#circuitagent) | the `CircuitAgent` runtime (off-box custody + verified intents) |
+| [`@circuit-llm/attest`](#circuitattest) | verified intents — sign/verify evidence, rule DSL, decision gate |
+| [`@circuit-llm/node`](#circuitnode) | join/manage a mesh node from code |
+| [`@circuit-llm/onchain`](#circuitonchain) | StakePoint stake + CIRC balance + mesh_registry reads (pure RPC) |
+| [`@circuit-llm/bundle`](#circuitbundle) | build/sign/verify content-addressed agent bundles (zero deps) |
+| [`@circuit-llm/vault`](#circuitvault) | drive the non-custodial on-chain vault (opt-in: Anchor) |
+| [`@circuit-llm/sdk`](#circuitsdk) | meta-package — re-exports the consume + agent + contributor packages |
 | [`circuit-py`](#circuit-py) | Python consume client (inference + data + x402) |
 
 ---
 
-## `@circuit/x402`
+## `@circuit-llm/x402`
 
 The generic micropayment client + server verifier. **Zero runtime dependencies.** Full guide: [x402.md](./x402.md).
 
@@ -53,7 +53,7 @@ class PaymentRequiredError {}  class SpendCapError {}  class X402RequestError {}
 
 ---
 
-## `@circuit/core`
+## `@circuit-llm/core`
 
 Shared foundation. **Zero runtime dependencies.** No global singletons or hardcoded paths — everything
 is injectable.
@@ -87,7 +87,7 @@ interface ChatMessage { role: 'system'|'user'|'assistant'|'tool'; content: strin
 
 ---
 
-## `@circuit/inference`
+## `@circuit-llm/inference`
 
 OpenAI-compatible client for the decentralized 72B, paid per call.
 
@@ -107,7 +107,7 @@ interface ChatParams { messages: ChatMessage[]; model?: string; maxTokens?: numb
 
 ---
 
-## `@circuit/data`
+## `@circuit-llm/data`
 
 Typed client for the Circuit Data API. Free endpoints return 200; paid endpoints answer 402 and the
 client pays + retries automatically.
@@ -133,7 +133,7 @@ class Data {
 
 ---
 
-## `@circuit/wallet`
+## `@circuit-llm/wallet`
 
 SOL + CIRC (Token-2022) operations. `Wallet` implements `PaymentWallet`, so it powers x402 payments.
 
@@ -157,7 +157,7 @@ class InsufficientFundsError extends Error { token: 'CIRC' | 'SOL'; haveRaw: big
 keypairFromSecret(input): Keypair;  loadKeypairFromEnv(env?): Keypair | null;
 generateKeypair(): Keypair;  secretKeyBase58(kp): string;  isValidAddress(s): boolean;
 
-// self-custody executor — drives @circuit/agent's LocalKeypairCustody
+// self-custody executor — drives @circuit-llm/agent's LocalKeypairCustody
 walletTradeExecutor(wallet): WalletExecutor;   // buy: SOL→token (sizeSol); sell: amount (base units)→SOL; signs locally
 ```
 
@@ -173,7 +173,7 @@ the only "heavy" package. Inject `connection`/`connections` (or `fetchImpl`) for
 
 ---
 
-## `@circuit/agent`
+## `@circuit-llm/agent`
 
 The agent runtime. You extend `CircuitAgent`; the runtime owns env wiring, custody (paper · self-custody
 · off-box signer · non-custodial vault), the heartbeat, logs, and lifecycle. Full guide: [agents.md](./agents.md).
@@ -210,10 +210,10 @@ scaffold(name): Record<string,string>;  writeScaffold(name, dir): Promise<string
 
 ---
 
-## `@circuit/attest`
+## `@circuit-llm/attest`
 
 The **verified-intent** keystone — how the off-box signer is sure a trade is genuinely your strategy's,
-not the host's. Zero deps beyond `@circuit/core`. Guide: [verified-intents.md](./verified-intents.md).
+not the host's. Zero deps beyond `@circuit-llm/core`. Guide: [verified-intents.md](./verified-intents.md).
 
 ```ts
 // sign / verify (canonical Ed25519 over stableStringify, raw-hex keys)
@@ -237,12 +237,12 @@ decisionGate({ intent, rule, inputs, evidence }, { rule, acceptedKeys, ... }): G
 ```
 
 The producers (`circuit-data-api`, the inference gateway) sign with this scheme; the consumers
-(`@circuit/data.getSigned`, `@circuit/inference.chatVerified`) verify with it; the signer enforces
+(`@circuit-llm/data.getSigned`, `@circuit-llm/inference.chatVerified`) verify with it; the signer enforces
 `decisionGate` before signing. A byte-identical plain-JS port runs in `circuit-agent-cloud`.
 
 ---
 
-## `@circuit/node`
+## `@circuit-llm/node`
 
 Join/manage a mesh node. Two clients (and two ed25519 identity schemes — see
 [architecture.md](./architecture.md#two-identity-schemes)). Full guide:
@@ -258,7 +258,7 @@ class MeshControl {
 generateMeshIdentity(): MeshIdentity;  meshIdentityFromSeed(seedHex): MeshIdentity;
 signMeshBody(id, body, now?): object;  verifyMeshBody(body): boolean;
 
-// public node registry — signed with the @circuit/core identity (SPKI/base64)
+// public node registry — signed with the @circuit-llm/core identity (SPKI/base64)
 class NodeRegistry {
   constructor(opts: { registryUrl; identity; fetchImpl?; timeoutMs? });
   announce(p); ping(update?); deregister(); getPeers(filters?);
@@ -267,7 +267,7 @@ class NodeRegistry {
 
 ---
 
-## `@circuit/onchain`
+## `@circuit-llm/onchain`
 
 Read-only Solana, via pure JSON-RPC — **no `@solana/web3.js`.**
 
@@ -287,7 +287,7 @@ const MESH_REGISTRY_PROGRAM_ID;
 
 ---
 
-## `@circuit/bundle`
+## `@circuit-llm/bundle`
 
 Content-addressed, signed **agent bundles** — the canonical codec shared with `circuit-agent-cloud` + the
 CLI (byte-identical signing, golden-vector locked). A cross-platform packer (no system `tar`) that
@@ -305,7 +305,7 @@ manifestSigningBytes(m): Buffer;  signManifest(m, priv): string;  verifyManifest
 
 ---
 
-## `@circuit/vault`
+## `@circuit-llm/vault`
 
 The off-chain client for the non-custodial **circuit-agent-vault** Anchor program — the agent can *trade*
 the vault but never *withdraw* (the owner is the sole withdraw authority, enforced on-chain). **Opt-in:**
@@ -319,21 +319,21 @@ class VaultClient {
   setRoutes(ref, …); setRule(ref, …); closeVault(ref, …); wrapSol(…); unwrapSol(…);
   trade(p): Promise<string>;                          // the route-agnostic, on-chain-guarded swap adapter
 }
-makeVaultExecutor(opts): { execute(intent, vi?) };    // the concrete executor for @circuit/agent's VaultCustody
+makeVaultExecutor(opts): { execute(intent, vi?) };    // the concrete executor for @circuit-llm/agent's VaultCustody
 jupiterSwapInstruction(q, vaultAuthority, fetchFn?);  // the production route source (Jupiter)
 ```
 
 ---
 
-## `@circuit/sdk`
+## `@circuit-llm/sdk`
 
 The meta-package. `export *` from the consume + agent + contributor packages (collision-free) so you can:
 
 ```ts
-import { Inference, Data, makeWallet, X402Client, CircuitAgent, MeshControl, verifyStake } from '@circuit/sdk';
+import { Inference, Data, makeWallet, X402Client, CircuitAgent, MeshControl, verifyStake } from '@circuit-llm/sdk';
 ```
 
-`@circuit/bundle` and `@circuit/vault` are **not** re-exported here — import them directly. (Bundle is a
+`@circuit-llm/bundle` and `@circuit-llm/vault` are **not** re-exported here — import them directly. (Bundle is a
 publish-time tool; vault pulls Anchor, so the meta stays lean.)
 
 ---

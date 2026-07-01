@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert';
 import { walletTradeExecutor } from '../src/executor.ts';
 import type { Wallet } from '../src/wallet.ts';
-import { SOL_MINT } from '@circuit/core';
+import { SOL_MINT } from '@circuit-llm/core';
 
 function mockWallet() {
   const calls: { inMint: string; outMint: string; amount: bigint | number; slip?: number }[] = [];

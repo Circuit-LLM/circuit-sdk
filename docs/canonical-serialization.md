@@ -6,8 +6,8 @@ bytes, so the SDK pins one serializer and one set of golden vectors.
 
 ## The one rule
 
-`@circuit/core` exports a single canonical serializer, **`stableStringify`**, used by everything in the
-SDK (`@circuit/attest`, `@circuit/node`, and owner-auth). It:
+`@circuit-llm/core` exports a single canonical serializer, **`stableStringify`**, used by everything in the
+SDK (`@circuit-llm/attest`, `@circuit-llm/node`, and owner-auth). It:
 
 - **sorts object keys** recursively, by UTF-16 code unit (the JS `Array.sort` default);
 - **drops `undefined`** — omits undefined-valued keys and coerces a primitive `undefined` → `null` — so

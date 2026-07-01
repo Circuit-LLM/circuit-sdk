@@ -6,7 +6,7 @@ import { dirname, join } from 'node:path';
 import { stableStringify } from '../src/index.ts';
 
 // Golden-vector conformance for THE canonical serializer (docs/canonical-serialization.md). These bytes
-// are the cross-repo signing contract — @circuit/attest + @circuit/node + owner-auth + circuit-data-api +
+// are the cross-repo signing contract — @circuit-llm/attest + @circuit-llm/node + owner-auth + circuit-data-api +
 // circuit-agent-cloud + circuit-dllm all sign/verify over the same canonical JSON. Drift → these fail.
 // Mirror this vectors file into the other repos so a change anywhere is caught. Peers still KEEPING
 // undefined agree on the `undefinedInput === false` subset until they converge.

@@ -2,7 +2,7 @@
 // the single most common reason payments start failing under load. Kept in its own module (not re-exported
 // by the package index) so the internals stay off the public API; tests import them from here directly.
 
-import { DEFAULT_CONFIG } from '@circuit/core';
+import { DEFAULT_CONFIG } from '@circuit-llm/core';
 
 /** The RPC-relevant subset of WalletOptions — a structural type, to avoid a circular import on wallet.ts. */
 interface RpcSourceOpts {

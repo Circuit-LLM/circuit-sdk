@@ -11,7 +11,7 @@ import {
   defineConfig,
   CIRC_MINT,
   circRawFromUsd,
-} from '@circuit/sdk';
+} from '@circuit-llm/sdk';
 
 test('the meta-package re-exports the whole surface', () => {
   assert.equal(typeof Inference, 'function');

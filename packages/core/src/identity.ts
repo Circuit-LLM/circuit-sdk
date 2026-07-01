@@ -31,7 +31,7 @@ export function generateIdentity(): Identity {
 /**
  * The **one canonical JSON serializer** for ecosystem signatures — keys sorted recursively, `undefined`
  * dropped (undefined-valued keys omitted; a primitive `undefined` → `null`) so the output is ALWAYS valid
- * JSON and signer + verifier hash identical bytes. Used by `@circuit/attest`, `@circuit/node`, and
+ * JSON and signer + verifier hash identical bytes. Used by `@circuit-llm/attest`, `@circuit-llm/node`, and
  * owner-auth alike.
  *
  * Producers normalize to valid JSON before signing anyway (`verdict ?? null`, conditional fields — see the

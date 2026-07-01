@@ -1,5 +1,5 @@
 {
-  "name": "@circuit/x402",
+  "name": "@circuit-llm/x402",
   "version": "0.2.1",
   "description": "Circuit SDK payment spine — pay any x402 endpoint in CIRC (client) + verify on-chain CIRC payments (server). Zero runtime dependencies.",
   "license": "MIT",

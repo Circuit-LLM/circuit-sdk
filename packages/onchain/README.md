@@ -1,4 +1,4 @@
-# @circuit/onchain
+# @circuit-llm/onchain
 
 > Read Circuit's on-chain state over **pure JSON-RPC** — StakePoint stake verification, CIRC balances, and the mesh registry — with no `@solana/web3.js` dependency.
 
@@ -7,13 +7,13 @@ Part of the **[Circuit SDK](https://github.com/Circuit-LLM/circuit-sdk)**. [Cont
 ## Install
 
 ```bash
-npm install @circuit/onchain
+npm install @circuit-llm/onchain
 ```
 
 ## Usage
 
 ```ts
-import { verifyStake, circBalance } from '@circuit/onchain';
+import { verifyStake, circBalance } from '@circuit-llm/onchain';
 
 const staked = await verifyStake(wallet, pool, 100_000, { rpcUrl });   // ≥ 100k CIRC staked?
 const circ = await circBalance(address, { rpcUrl });

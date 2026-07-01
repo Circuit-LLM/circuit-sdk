@@ -1,6 +1,6 @@
 # Agents
 
-`@circuit/agent` is the agent runtime: write an autonomous agent that runs on Circuit's CPU mesh with
+`@circuit-llm/agent` is the agent runtime: write an autonomous agent that runs on Circuit's CPU mesh with
 **off-box, non-custodial signing**. You extend `CircuitAgent` and implement `tick()` — the runtime owns
 everything else (env wiring, custody, heartbeat, logs, lifecycle). The same code paper-trades locally
 and runs live on borrowed hardware.
@@ -30,7 +30,7 @@ custody**: the signing key lives in a signer service, never on the host, and the
 ## Write one
 
 ```ts
-import { CircuitAgent } from '@circuit/agent';
+import { CircuitAgent } from '@circuit-llm/agent';
 
 class DipBot extends CircuitAgent {
   async setup() {
@@ -61,7 +61,7 @@ You touch only `setup()` and `tick()` (and optionally `onDrain()`/`checkpoint()`
 
 ## Off-box custody
 
-> `@circuit/agent` has **four custody modes** — paper (`MockCustody`), self-custody (`LocalKeypairCustody`,
+> `@circuit-llm/agent` has **four custody modes** — paper (`MockCustody`), self-custody (`LocalKeypairCustody`,
 > [see below](#local-paper-mockcustody--self-custody-localkeypaircustody)), off-box **signer**, and the
 > non-custodial on-chain **vault**. This section is the **off-box signer** — the model for running on the
 > *mesh* (a stranger's CPU), where the agent must never hold the key.
@@ -181,7 +181,7 @@ To trade **for real on hardware you control**, pass a self-custody executor — 
 policy gate. It goes live when `CIRCUIT_AGENT_PAPER=0`:
 
 ```ts
-import { makeWallet, walletTradeExecutor } from '@circuit/wallet';
+import { makeWallet, walletTradeExecutor } from '@circuit-llm/wallet';
 const wallet = makeWallet();                                       // your keypair (CIRCUIT_WALLET / keyfile)
 const bot = new DipBot({ executor: walletTradeExecutor(wallet) }); // → LocalKeypairCustody
 ```
@@ -228,7 +228,7 @@ Programmatically: `scaffold(name)` returns a path→content map; `writeScaffold(
 
 ## Hosting
 
-`@circuit/agent` is what you *write the agent with*. Deploying it to the mesh —
+`@circuit-llm/agent` is what you *write the agent with*. Deploying it to the mesh —
 `create`/`start`/`stop`, placement, the operator's node-host — lives in the `circuit` CLI
 ([apps/cli](../apps/cli/README.md), the `circuit agent …` commands) and the Circuit agent cloud. The
 runtime's job is to make your agent *speak the contract* those expect; the cloud schedules it, opens the

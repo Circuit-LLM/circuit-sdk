@@ -15,8 +15,8 @@
 
 import nodeFs from 'node:fs';
 import { join } from 'node:path';
-import { Inference, type InferenceOptions } from '@circuit/inference';
-import { Data, type DataOptions } from '@circuit/data';
+import { Inference, type InferenceOptions } from '@circuit-llm/inference';
+import { Data, type DataOptions } from '@circuit-llm/data';
 import {
   type AgentContext,
   type AgentState,
@@ -27,7 +27,7 @@ import {
   type Position,
 } from './types.ts';
 import { type Custody, LocalKeypairCustody, MockCustody, SignerCustody, type TradeExecutor, type SellOpts } from './custody.ts';
-import { evaluateRule, type Evidence, type Rule, type RuleInputs, type VerifiedIntent } from '@circuit/attest';
+import { evaluateRule, type Evidence, type Rule, type RuleInputs, type VerifiedIntent } from '@circuit-llm/attest';
 
 /** The slice of fs the agent uses — injectable for tests. */
 export interface FsLike {
@@ -47,7 +47,7 @@ export interface AgentOptions {
   /** Inject a custody (tests / explicit). Otherwise derived: SignerCustody if signerUrl (mesh), else
    *  LocalKeypairCustody if `executor` is set (self-custody on your box), else MockCustody (paper). */
   custody?: Custody;
-  /** Self-custody executor (e.g. walletTradeExecutor from @circuit/wallet). When set and there is no
+  /** Self-custody executor (e.g. walletTradeExecutor from @circuit-llm/wallet). When set and there is no
    *  signerUrl, the agent trades locally with your keypair — paper unless CIRCUIT_AGENT_PAPER=0. */
   executor?: TradeExecutor;
   /** Local policy for MockCustody / LocalKeypairCustody when there's no signer. */

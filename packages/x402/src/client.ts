@@ -5,7 +5,7 @@
 
 import { parse402, type PaymentQuote } from './quote.ts';
 
-/** The only thing the payment spine needs from a wallet. @circuit/wallet (Phase 1)
+/** The only thing the payment spine needs from a wallet. @circuit-llm/wallet (Phase 1)
  *  is one implementation; any object with this shape works (structural typing). */
 export interface PaymentWallet {
   /** Send `amountRaw` base units of CIRC to `recipient`; resolve to the tx signature. */

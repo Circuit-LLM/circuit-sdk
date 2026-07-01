@@ -1,7 +1,7 @@
 # Contribute a node
 
-The same SDK that *consumes* Circuit can *join* it. `@circuit/node` gives you the control surface for a
-mesh node from code; `@circuit/onchain` reads stake and CIRC balances with no `@solana/web3.js`. The
+The same SDK that *consumes* Circuit can *join* it. `@circuit-llm/node` gives you the control surface for a
+mesh node from code; `@circuit-llm/onchain` reads stake and CIRC balances with no `@solana/web3.js`. The
 heavy lifting — actually serving 72B layer slices on a GPU — stays in the node image; the SDK is the
 **control plane** you talk to.
 
@@ -30,7 +30,7 @@ They use **different** signing schemes (see [below](#two-identity-schemes)).
 `drain`, plus read-only `topology`/`health`.
 
 ```ts
-import { MeshControl, generateMeshIdentity } from '@circuit/node';
+import { MeshControl, generateMeshIdentity } from '@circuit-llm/node';
 
 const identity = generateMeshIdentity();          // raw-hex ed25519 — persist identity.seedHex
 const mesh = new MeshControl({ controlUrl: 'http://control:18932', identity });
@@ -68,11 +68,11 @@ setInterval(async () => {
 ## The public node registry (NodeRegistry)
 
 The network's public registry (`api.circuitllm.xyz`) for announcing a node and finding peers. Signed
-with the **`@circuit/core`** ed25519 identity (SPKI/base64, `X-Node-*` headers):
+with the **`@circuit-llm/core`** ed25519 identity (SPKI/base64, `X-Node-*` headers):
 
 ```ts
-import { NodeRegistry } from '@circuit/node';
-import { generateIdentity, loadOrCreateIdentity } from '@circuit/core';
+import { NodeRegistry } from '@circuit-llm/node';
+import { generateIdentity, loadOrCreateIdentity } from '@circuit-llm/core';
 
 const identity = await loadOrCreateIdentity('./data/identity.json');   // persistent
 const reg = new NodeRegistry({ registryUrl: 'https://api.circuitllm.xyz', identity });
@@ -89,10 +89,10 @@ await reg.deregister();
 
 ## Read stake & balances (onchain)
 
-`@circuit/onchain` is pure JSON-RPC — give it an `rpcUrl` and it reads. No `@solana/web3.js`.
+`@circuit-llm/onchain` is pure JSON-RPC — give it an `rpcUrl` and it reads. No `@solana/web3.js`.
 
 ```ts
-import { verifyStake, getStakePositions, circBalance } from '@circuit/onchain';
+import { verifyStake, getStakePositions, circBalance } from '@circuit-llm/onchain';
 
 const rpc = { rpcUrl: process.env.RPC_URL! };
 
@@ -116,7 +116,7 @@ positions }`. Eligibility is computed in exact integer math; the float `stakedAm
 
 The ecosystem uses **two** ed25519 identities — don't conflate them:
 
-| | `@circuit/core` `Identity` | `@circuit/node` `MeshIdentity` |
+| | `@circuit-llm/core` `Identity` | `@circuit-llm/node` `MeshIdentity` |
 |---|---|---|
 | Used by | the public node registry | the inference-mesh control plane |
 | `nodeId` | SPKI/DER public key, **base64** | raw public key, **hex** (64 chars) |

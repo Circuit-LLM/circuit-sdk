@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert';
 import { Inference } from '../src/inference.ts';
-import { generateAttestSigner, signInferenceReceipt } from '@circuit/attest';
+import { generateAttestSigner, signInferenceReceipt } from '@circuit-llm/attest';
 
 const signer = generateAttestSigner();
 

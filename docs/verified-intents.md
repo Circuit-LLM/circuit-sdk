@@ -55,7 +55,7 @@ valid trade or pick *when* among genuinely-justified moments, and T3 stays unche
 A rule is a small, deterministic program the signer can re-run: conditions over named inputs → an intent.
 
 ```ts
-import type { Rule } from '@circuit/sdk';
+import type { Rule } from '@circuit-llm/sdk';
 
 const dipRule: Rule = {
   id: 'dip-v1',
@@ -86,7 +86,7 @@ Evidence is data the signer can check came from a source it trusts. Three kinds:
 **Signed quote** — first-party Circuit data, signed by the data-API (`?signed=1`):
 
 ```ts
-import { Data } from '@circuit/sdk';
+import { Data } from '@circuit-llm/sdk';
 
 const data = new Data({ wallet });
 const acceptedKeys = { [(await data.signingKey()).key]: 'data' as const };
@@ -99,7 +99,7 @@ const quote = await data.getSigned('/api/token-price', { mint }, { acceptedKeys 
 checkable input):
 
 ```ts
-import { Inference } from '@circuit/sdk';
+import { Inference } from '@circuit-llm/sdk';
 
 const inf = new Inference({ wallet });
 const infKeys = { [(await inf.signingKey()).key]: 'inference' as const };
@@ -123,7 +123,7 @@ In verified mode, give the agent the rule + the keys it trusts; then call `verif
 It evaluates the rule locally, and if it fires, submits `{ intent, rule, inputs, evidence }` to custody.
 
 ```ts
-import { CircuitAgent } from '@circuit/sdk';
+import { CircuitAgent } from '@circuit-llm/sdk';
 
 class DipBot extends CircuitAgent {
   async tick() {
@@ -182,4 +182,4 @@ that agent must pass the gate.
 ## See also
 
 - [agents.md](agents.md) — the agent runtime + custody (what a host can and can't do)
-- [`@circuit/attest`](packages.md#circuitattest) — the sign/verify/rule/gate primitives (the keystone)
+- [`@circuit-llm/attest`](packages.md#circuitattest) — the sign/verify/rule/gate primitives (the keystone)

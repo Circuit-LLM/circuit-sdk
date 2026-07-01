@@ -1,4 +1,4 @@
-# @circuit/inference
+# @circuit-llm/inference
 
 > OpenAI-compatible client for Circuit's decentralized 72B, served across a mesh of independent GPUs and **paid per request in CIRC** over x402.
 
@@ -7,14 +7,14 @@ Part of the **[Circuit SDK](https://github.com/Circuit-LLM/circuit-sdk)**. [Gett
 ## Install
 
 ```bash
-npm install @circuit/inference @circuit/wallet
+npm install @circuit-llm/inference @circuit-llm/wallet
 ```
 
 ## Usage
 
 ```ts
-import { makeWallet } from '@circuit/wallet';
-import { Inference } from '@circuit/inference';
+import { makeWallet } from '@circuit-llm/wallet';
+import { Inference } from '@circuit-llm/inference';
 
 const ai = new Inference({ wallet: makeWallet() });   // wallet from CIRCUIT_WALLET
 const res = await ai.chat({ messages: [{ role: 'user', content: 'what is a falling knife?' }] });

@@ -1,4 +1,4 @@
-"""Default Circuit configuration (mirrors @circuit/core). Inject overrides per client."""
+"""Default Circuit configuration (mirrors @circuit-llm/core). Inject overrides per client."""
 
 CIRC_MINT = "8fQgfsRnRkKSeNUhevT7wp8mhNvMSJdLn1fJi4oVpump"
 CIRC_TOKEN_PROGRAM = "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"

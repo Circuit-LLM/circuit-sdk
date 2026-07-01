@@ -1,4 +1,4 @@
-# @circuit/data
+# @circuit-llm/data
 
 > Typed client for the Circuit Data API — market and on-chain intelligence (prices, liquidity, holders, trending, security), **paid per call in CIRC** over x402.
 
@@ -7,14 +7,14 @@ Part of the **[Circuit SDK](https://github.com/Circuit-LLM/circuit-sdk)**. [Pack
 ## Install
 
 ```bash
-npm install @circuit/data @circuit/wallet
+npm install @circuit-llm/data @circuit-llm/wallet
 ```
 
 ## Usage
 
 ```ts
-import { makeWallet } from '@circuit/wallet';
-import { Data } from '@circuit/data';
+import { makeWallet } from '@circuit-llm/wallet';
+import { Data } from '@circuit-llm/data';
 
 const data = new Data({ wallet: makeWallet() });
 const price = await data.tokenPrice('8fQgfsRnRkKSeNUhevT7wp8mhNvMSJdLn1fJi4oVpump');

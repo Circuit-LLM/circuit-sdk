@@ -1,8 +1,8 @@
 // NodeRegistry — the public network registry client (circuit-node-client/lib/registry.js):
-// announce/ping/deregister/peers. Signed with the @circuit/core ed25519 identity
+// announce/ping/deregister/peers. Signed with the @circuit-llm/core ed25519 identity
 // (SPKI/base64 scheme, X-Node-* headers) — distinct from the mesh control plane.
 
-import { signRequest, type Identity } from '@circuit/core';
+import { signRequest, type Identity } from '@circuit-llm/core';
 
 export interface NodeRegistryOptions {
   registryUrl: string;

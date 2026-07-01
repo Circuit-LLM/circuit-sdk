@@ -18,7 +18,7 @@ fs.writeFileSync(path.join(srcDir, 'agent.js'), 'console.log("hi")');
 const { publishDir } = await import('../src/services/bundle.js');
 const { verifyBundle } = await import('/home/watchtower/circuit-agent-cloud/lib/bundle.js');
 
-const b = publishDir({ dir: srcDir, agentId: 'x', entry: 'agent.js', sdk: '@circuit/agent@0' });
+const b = publishDir({ dir: srcDir, agentId: 'x', entry: 'agent.js', sdk: '@circuit-llm/agent@0' });
 assert.equal(b.manifest.publisherPubkey, kp.publicKey.toBase58(), 'publisher == wallet');
 const bytes = fs.readFileSync(b.url);
 

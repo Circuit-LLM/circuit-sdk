@@ -1,13 +1,13 @@
-// walletTradeExecutor — turn a self-custody Wallet into the executor that @circuit/agent's
+// walletTradeExecutor — turn a self-custody Wallet into the executor that @circuit-llm/agent's
 // LocalKeypairCustody calls: buy = swap SOL→token, sell = swap token→SOL, signed + sent LOCALLY with
-// the wallet's own keypair (via Jupiter). Structurally typed (no @circuit/agent import) so this stays
-// a leaf package; the returned object is shape-compatible with @circuit/agent's TradeExecutor.
-import { SOL_MINT } from '@circuit/core';
+// the wallet's own keypair (via Jupiter). Structurally typed (no @circuit-llm/agent import) so this stays
+// a leaf package; the returned object is shape-compatible with @circuit-llm/agent's TradeExecutor.
+import { SOL_MINT } from '@circuit-llm/core';
 import type { Wallet } from './wallet.ts';
 
 const LAMPORTS_PER_SOL = 1_000_000_000;
 
-/** The buy/sell shape LocalKeypairCustody hands the executor — a structural subset of @circuit/agent's `Intent`. */
+/** The buy/sell shape LocalKeypairCustody hands the executor — a structural subset of @circuit-llm/agent's `Intent`. */
 export interface TradeIntent {
   kind: 'buy' | 'sell';
   /** Token mint to trade. */

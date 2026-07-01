@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert';
 import { NodeRegistry } from '../src/node-registry.ts';
-import { generateIdentity, verifyRequest } from '@circuit/core';
+import { generateIdentity, verifyRequest } from '@circuit-llm/core';
 
 function stub(status: number, body: unknown, capture?: (url: string, init?: RequestInit) => void): typeof fetch {
   return (async (url: string, init?: RequestInit) => {

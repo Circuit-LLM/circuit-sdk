@@ -60,13 +60,13 @@ Read-only features (market data, the swarm, network health) need **no wallet at 
 
 ## Quick Start
 
-The CLI ships inside the **circuit-sdk** monorepo (`apps/cli`) and runs on the `@circuit/*` packages:
+The CLI ships inside the **circuit-sdk** monorepo (`apps/cli`) and runs on the `@circuit-llm/*` packages:
 
 ```bash
 git clone https://github.com/Circuit-LLM/circuit-sdk
 cd circuit-sdk
 npm install
-npm run build            # build the @circuit/* packages the CLI imports
+npm run build            # build the @circuit-llm/* packages the CLI imports
 
 npm run cli              # open the interactive console
 # or, to expose `circuit` globally:  npm link -w apps/cli

@@ -1,14 +1,14 @@
 // DLLM chat through the Circuit inference gateway, paid per call in CIRC (x402).
 // OpenAI-compatible. Non-streaming `chat`, token-streaming `chatStream` (async
-// generator). Ported from circuit-cli/src/services/inference.js onto @circuit/x402.
+// generator). Ported from circuit-cli/src/services/inference.js onto @circuit-llm/x402.
 
-import { DEFAULT_CONFIG, type ChatMessage, type CircuitConfig } from '@circuit/core';
+import { DEFAULT_CONFIG, type ChatMessage, type CircuitConfig } from '@circuit-llm/core';
 import {
   X402Client,
   type PaymentWallet,
   type PaymentQuote,
-} from '@circuit/x402';
-import { verifyEvidence, type InferenceReceipt } from '@circuit/attest';
+} from '@circuit-llm/x402';
+import { verifyEvidence, type InferenceReceipt } from '@circuit-llm/attest';
 
 export interface InferenceOptions {
   /** A pre-built payment client. If omitted, one is built from `wallet`. */

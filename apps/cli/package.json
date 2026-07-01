@@ -25,9 +25,9 @@
   "author": "Circuit LLM <circuitllm@protonmail.com>",
   "license": "MIT",
   "dependencies": {
-    "@circuit/bundle": "*",
-    "@circuit/core": "*",
-    "@circuit/wallet": "*",
+    "@circuit-llm/bundle": "*",
+    "@circuit-llm/core": "*",
+    "@circuit-llm/wallet": "*",
     "@clack/prompts": "^0.7.0",
     "@solana/web3.js": "^1.95.2",
     "boxen": "^7.1.1",

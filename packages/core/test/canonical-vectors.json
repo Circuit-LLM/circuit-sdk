@@ -1,5 +1,5 @@
 {
-  "note": "Golden vectors pinning THE canonical serializer @circuit/core `stableStringify` (drops undefined → valid JSON) against drift, incl. cross-repo. `undefined` in `input` is the sentinel below — revive to real undefined before calling. `undefinedInput` flags vectors that contain undefined: cross-repo peers still KEEPING undefined only agree on the undefinedInput=false subset until they converge (see docs/canonical-serialization.md).",
+  "note": "Golden vectors pinning THE canonical serializer @circuit-llm/core `stableStringify` (drops undefined → valid JSON) against drift, incl. cross-repo. `undefined` in `input` is the sentinel below — revive to real undefined before calling. `undefinedInput` flags vectors that contain undefined: cross-repo peers still KEEPING undefined only agree on the undefinedInput=false subset until they converge (see docs/canonical-serialization.md).",
   "undefinedSentinel": "@@undefined@@",
   "vectors": [
     {

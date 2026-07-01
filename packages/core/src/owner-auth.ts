@@ -6,7 +6,7 @@
 // server holds no per-user secret: identity IS the wallet pubkey.
 //
 // The canonical message + Ed25519 + base58 MUST stay byte-identical across the CLI, the cloud, and here
-// (golden vector in test/owner-auth.test.ts). The base58/ed25519 helpers mirror @circuit/bundle's crypto;
+// (golden vector in test/owner-auth.test.ts). The base58/ed25519 helpers mirror @circuit-llm/bundle's crypto;
 // consolidating both into one core crypto module is a tracked follow-on.
 import crypto from 'node:crypto';
 import { stableStringify } from './identity.ts'; // the one canonical serializer (drops undefined → valid JSON)
@@ -79,7 +79,7 @@ export function ownerAuthMessage({ method, path, body, ts, nonce }: { method: st
   return `circuit-owner-auth\nv1\n${String(method).toUpperCase()}\n${path}\n${bodyHash}\n${ts}\n${nonce}`;
 }
 
-/** A Solana-style owner key: the 64-byte secret + the base58 address (e.g. from @circuit/wallet). */
+/** A Solana-style owner key: the 64-byte secret + the base58 address (e.g. from @circuit-llm/wallet). */
 export interface OwnerSigner {
   secretKey: Uint8Array; // 64-byte Solana secret (seed‖pubkey); only the 32-byte seed is used to sign
   address: string; // base58 pubkey

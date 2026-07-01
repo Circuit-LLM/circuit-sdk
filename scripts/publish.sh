@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Publish all @circuit/* packages to npm in dependency order (leaves first, meta last),
+# Publish all @circuit-llm/* packages to npm in dependency order (leaves first, meta last),
 # so no package is ever published before something it depends on.
 #
 # Prerequisites:
-#   - npm login  (an account with publish rights on the @circuit scope)
+#   - npm login  (an account with publish rights on the @circuit-llm scope)
 #   - a clean, committed working tree at the version you intend to publish
 #
 # Usage:
@@ -28,8 +28,8 @@ TIERS=(
 
 for tier in "${TIERS[@]}"; do
   for pkg in $tier; do
-    echo "==> npm publish @circuit/$pkg $*"
-    npm publish -w "@circuit/$pkg" "$@"
+    echo "==> npm publish @circuit-llm/$pkg $*"
+    npm publish -w "@circuit-llm/$pkg" "$@"
   done
 done
 

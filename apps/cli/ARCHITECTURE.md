@@ -30,8 +30,8 @@ src/
 │  ├─ circuitNode.js        network, swarm/*, trending, dex
 │  ├─ node.js               GPU join installer
 │  ├─ agents.js             agent facade + drivers/{local,cloud} (create/start/host)
-│  ├─ owner-auth.js         wallet-signed control-plane auth (matches @circuit/core)
-│  ├─ bundle.js             content-addressed agent bundles (via @circuit/bundle)
+│  ├─ owner-auth.js         wallet-signed control-plane auth (matches @circuit-llm/core)
+│  ├─ bundle.js             content-addressed agent bundles (via @circuit-llm/bundle)
 │  └─ vault.js              non-custodial on-chain Agent Vault client
 ├─ ui/                      ← draw. pure render, ZERO domain logic
 │  ├─ banner.js  layout.js  components.js  screen.js  chart.js  prompts.js

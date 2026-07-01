@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert';
 import { LocalKeypairCustody, CircuitAgent, type TradeExecutor } from '../src/index.ts';
 import type { Intent } from '../src/types.ts';
-import type { VerifiedIntent } from '@circuit/attest';
+import type { VerifiedIntent } from '@circuit-llm/attest';
 
 // A recording executor stands in for the real self-custody path (walletTradeExecutor → Jupiter).
 function recorder(result = { signature: 'SIG_TX', solValue: 0.01 }) {
