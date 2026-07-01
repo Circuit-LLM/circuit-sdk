@@ -1,8 +1,8 @@
 {
   "name": "@circuit/core",
-  "version": "0.0.0",
+  "version": "0.2.1",
   "description": "Circuit SDK core — http client, injectable config, ed25519 identity, shared types.",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "type": "module",
   "exports": {
     ".": {

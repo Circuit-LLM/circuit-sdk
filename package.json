@@ -1,9 +1,9 @@
 {
   "name": "circuit-sdk",
-  "version": "0.0.0",
+  "version": "0.2.1",
   "private": true,
   "description": "Circuit SDK — TypeScript toolkit for the Circuit decentralized-LLM ecosystem: x402-paid inference, data, wallet, and hosted agents with non-custodial signing. See the README and docs/.",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "type": "module",
   "workspaces": [
     "packages/*",

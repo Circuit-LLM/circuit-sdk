@@ -1,8 +1,8 @@
 {
   "name": "@circuit/sdk",
-  "version": "0.0.0",
+  "version": "0.2.1",
   "description": "Circuit SDK — batteries-included meta-package re-exporting @circuit/{core,x402,inference,data,wallet}.",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "type": "module",
   "exports": {
     ".": {
@@ -18,15 +18,15 @@
     "prepack": "tsup src/index.ts --format esm --dts --clean --out-dir dist"
   },
   "dependencies": {
-    "@circuit/core": "0.0.0",
-    "@circuit/x402": "0.0.0",
-    "@circuit/inference": "0.0.0",
-    "@circuit/data": "0.0.0",
-    "@circuit/wallet": "0.0.0",
-    "@circuit/agent": "0.0.0",
-    "@circuit/node": "0.0.0",
-    "@circuit/onchain": "0.0.0",
-    "@circuit/attest": "0.0.0"
+    "@circuit/core": "0.2.1",
+    "@circuit/x402": "0.2.1",
+    "@circuit/inference": "0.2.1",
+    "@circuit/data": "0.2.1",
+    "@circuit/wallet": "0.2.1",
+    "@circuit/agent": "0.2.1",
+    "@circuit/node": "0.2.1",
+    "@circuit/onchain": "0.2.1",
+    "@circuit/attest": "0.2.1"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

@@ -1,8 +1,8 @@
 {
   "name": "@circuit/data",
-  "version": "0.0.0",
+  "version": "0.2.1",
   "description": "Circuit SDK data — typed client for the Circuit Data API (market + on-chain data), paid per call in CIRC (x402).",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "type": "module",
   "exports": {
     ".": {
@@ -18,9 +18,9 @@
     "prepack": "tsup src/index.ts --format esm --dts --clean --out-dir dist"
   },
   "dependencies": {
-    "@circuit/attest": "0.0.0",
-    "@circuit/core": "0.0.0",
-    "@circuit/x402": "0.0.0"
+    "@circuit/attest": "0.2.1",
+    "@circuit/core": "0.2.1",
+    "@circuit/x402": "0.2.1"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

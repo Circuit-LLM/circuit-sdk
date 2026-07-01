@@ -1,8 +1,8 @@
 {
   "name": "@circuit/onchain",
-  "version": "0.0.0",
+  "version": "0.2.1",
   "description": "Circuit SDK on-chain reads — StakePoint stake verification + CIRC balances via pure JSON-RPC (no @solana/web3.js).",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "type": "module",
   "exports": {
     ".": {
@@ -18,7 +18,7 @@
     "prepack": "tsup src/index.ts --format esm --dts --clean --out-dir dist"
   },
   "dependencies": {
-    "@circuit/core": "0.0.0"
+    "@circuit/core": "0.2.1"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
