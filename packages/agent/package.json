@@ -1,7 +1,7 @@
 {
   "name": "@circuit/agent",
   "version": "0.0.0",
-  "description": "Circuit SDK agent runtime — write an autonomous agent (CircuitAgent) that runs on Circuit's CPU mesh with off-box (non-custodial) signing. Buy/sell only; funds can't leave.",
+  "description": "Circuit SDK agent runtime — write an autonomous agent (CircuitAgent) with pluggable custody (paper · self-custody · off-box signer · non-custodial vault). Buy/sell only; on the mesh the key stays off-box, so funds can't leave.",
   "license": "UNLICENSED",
   "type": "module",
   "exports": {
@@ -18,7 +18,6 @@
     "prepack": "tsup src/index.ts --format esm --dts --clean --out-dir dist && tsup bin/circuit-agent.ts --format esm --out-dir dist"
   },
   "dependencies": {
-    "@circuit/core": "0.0.0",
     "@circuit/inference": "0.0.0",
     "@circuit/data": "0.0.0",
     "@circuit/attest": "0.0.0"

@@ -12,6 +12,7 @@
 import {
   DEFAULT_POLICY,
   normalizePolicy,
+  type CustodyKind,
   type Intent,
   type IntentKind,
   type IntentResult,
@@ -28,7 +29,7 @@ export interface SellOpts {
 }
 
 export interface Custody {
-  readonly kind: 'offbox-signer' | 'local' | 'local-keypair' | 'vault';
+  readonly kind: CustodyKind;
   readonly address: string | null;
   readonly paper: boolean;
   /** Submit a raw intent. Resolves to a signed result or a rejection (never throws). */

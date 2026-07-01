@@ -80,6 +80,10 @@ export const STATE = {
 
 export type AgentState = string;
 
+/** The custody backends an agent can run under (single source of truth for `Custody.kind` +
+ *  `Heartbeat.custody`, so a new mode is added in exactly one place). */
+export type CustodyKind = 'offbox-signer' | 'local' | 'local-keypair' | 'vault';
+
 /** Runtime context handed to a workload by the node-host (read from env). */
 export interface AgentContext {
   dataDir: string;
@@ -112,7 +116,7 @@ export interface Heartbeat {
   pnlPct: number;
   positions: Position[];
   paper: boolean;
-  custody: 'offbox-signer' | 'local' | 'local-keypair' | 'vault';
+  custody: CustodyKind;
   address?: string;
   signedTrades: number;
   [k: string]: unknown;

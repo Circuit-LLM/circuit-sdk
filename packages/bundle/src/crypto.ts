@@ -80,10 +80,6 @@ export function fromSeed(seed: Uint8Array | Buffer): Keypair {
   return { seed: Buffer.from(seed), priv, pubkey, address: base58(pubkey) };
 }
 
-export function newKeypair(): Keypair {
-  return fromSeed(crypto.randomBytes(32));
-}
-
 /** 64-byte Ed25519 signature over `msg`. `priv` is a node KeyObject (see fromSeed). */
 export function sign(priv: crypto.KeyObject, msg: Uint8Array | Buffer): Buffer {
   return crypto.sign(null, Buffer.from(msg), priv); // null algo == Ed25519
