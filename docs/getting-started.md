@@ -8,9 +8,11 @@ is a CIRC micropayment over [x402](./x402.md).
 - [Requirements](#requirements)
 - [Install](#install)
 - [Connect a wallet](#connect-a-wallet)
+- [Configuration (endpoints & RPC)](#configuration-endpoints--rpc)
 - [Your first calls (TypeScript)](#your-first-calls-typescript)
 - [Your first calls (Python)](#your-first-calls-python)
 - [What needs a wallet (and what doesn't)](#what-needs-a-wallet-and-what-doesnt)
+- [Troubleshooting](#troubleshooting)
 - [Next steps](#next-steps)
 
 ---
@@ -41,8 +43,11 @@ npm install @circuit/inference @circuit/wallet @circuit/x402
 Python:
 
 ```bash
-pip install circuit-py            # stdlib-only consume client
+pip install circuit-py            # stdlib-only consume client (once published)
 ```
+
+> `circuit-py` isn't on PyPI yet — until the first release, install it from this repo:
+> `pip install ./circuit-py`.
 
 From this repo (development), everything is wired through npm workspaces — `npm install` at the root
 links all packages and you can `import` them directly.
@@ -73,6 +78,51 @@ that pays — `Inference`, `Data`, or a raw `X402Client`.
 
 > Your secret key is never printed or logged. For read-only use, construct a client with **no** wallet
 > — free endpoints and the mesh topology work without one.
+
+> **No wallet yet?** The `circuit` CLI can make one: `circuit wallet generate` (a fresh keypair with a
+> one-time secret reveal) or `circuit wallet import`. Reveal the base58 secret and set it as
+> `CIRCUIT_WALLET`. See [the CLI](./cli.md).
+
+---
+
+## Configuration (endpoints & RPC)
+
+Everything works out of the box against Circuit's live endpoints — but two things are worth setting
+before you run at any volume.
+
+**Use your own Solana RPC.** The default is the public `api.mainnet-beta.solana.com`, which rate-limits;
+under real load, payments start failing. Point the wallet at your own provider:
+
+```ts
+const wallet = makeWallet({ rpcUrl: 'https://your-rpc-provider' });
+```
+
+**Environment variables the SDK reads:**
+
+| Variable | Read by | Purpose |
+|----------|---------|---------|
+| `CIRCUIT_WALLET` | `makeWallet()` | base58 secret key — loaded automatically, nothing written to disk |
+| `CIRCUIT_RPC_URL` | `configFromEnv()` | Solana RPC for payments + on-chain reads |
+| `CIRCUIT_INFERENCE_URL` | `configFromEnv()` | override the inference gateway |
+| `CIRCUIT_DATA_URL` | `configFromEnv()` | override the data API |
+
+`CIRCUIT_WALLET` is picked up on its own. The rest flow through `configFromEnv()` — build a config once
+and pass it everywhere (anything unset falls back to the live defaults):
+
+```ts
+import { makeWallet, Inference, Data, defineConfig, configFromEnv } from '@circuit/sdk';
+
+const config = defineConfig(configFromEnv());        // env → a full config
+const wallet = makeWallet({ config });               // your RPC for payments
+const ai     = new Inference({ wallet, config });
+const data   = new Data({ wallet, config });
+```
+
+Or override a single endpoint inline — handy for pointing at a local gateway:
+
+```ts
+const ai = new Inference({ wallet, baseUrl: 'http://localhost:8000/v1' });
+```
 
 ---
 
@@ -154,6 +204,19 @@ Trusted/co-located callers can skip payment entirely with an internal key:
 ```ts
 const ai = new Inference({ internalKey: process.env.CIRCUIT_INTERNAL_KEY });   // no wallet, no 402
 ```
+
+---
+
+## Troubleshooting
+
+| Symptom | Likely cause | Fix |
+|---------|--------------|-----|
+| `No wallet loaded — pass a keypair or set CIRCUIT_WALLET` | No key available | Set `CIRCUIT_WALLET`, or pass `makeWallet({ keypair })` |
+| Calls hang, time out, or fail under load | The default public RPC is rate-limiting | Set your own RPC — see [Configuration](#configuration-endpoints--rpc) |
+| `SpendCapError` | A quote exceeded `maxSpendRaw` | Raise the cap if the price is legitimate; otherwise it just protected you |
+| `PaymentRequiredError` after a payment | The transfer didn't confirm (RPC lag, or no SOL for fees) | Keep a little SOL for fees; use a reliable RPC |
+| Transfer fails — insufficient funds | Wallet has no CIRC (or no SOL for fees) | Fund it: CIRC via [Pump.fun](https://pump.fun/coin/8fQgfsRnRkKSeNUhevT7wp8mhNvMSJdLn1fJi4oVpump), plus a little SOL for fees |
+| `chat` returns empty `content` | Gateway/model hiccup | Retry; run `circuit status doctor` (CLI) to check the mesh |
 
 ---
 

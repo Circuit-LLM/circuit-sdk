@@ -125,7 +125,7 @@ One npm workspace of scoped packages (`@circuit/sdk` re-exports them all), plus 
 | **`@circuit/node`** | Join/manage a mesh node from code (control plane + public registry). | core |
 | **`@circuit/onchain`** | CIRC balance + StakePoint stake verification + `mesh_registry` control-plane reads, via pure JSON-RPC. **No web3.js.** | core |
 | **`@circuit/bundle`** | Build, sign, verify & unpack content-addressed agent bundles — the canonical codec shared with the cloud + CLI; cross-platform packer + secret-file exclusion. **Zero deps.** | — |
-| **`@circuit/vault`** | Drive the non-custodial circuit-agent-vault on-chain; `makeVaultExecutor` plugs into `@circuit/agent`. **Opt-in (Anchor).** | anchor |
+| **`@circuit/vault`** | Drive the non-custodial on-chain Agent Vault; `makeVaultExecutor` plugs into `@circuit/agent`. **Opt-in (Anchor).** | anchor |
 | **`@circuit/sdk`** | Batteries-included meta-package — re-exports the consume + agent + contributor packages (bundle/vault are direct imports). | all |
 | **`circuit-py`** | Python consume client — inference + data + x402. **Stdlib only.** | — |
 
