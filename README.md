@@ -17,7 +17,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178c6)](https://www.typescriptlang.org)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D22-brightgreen)](https://nodejs.org)
 [![Python](https://img.shields.io/badge/python-%3E%3D3.10-3776ab)](https://www.python.org)
-[![Tests](https://img.shields.io/badge/tests-163%20passing-success)](#testing)
+[![Tests](https://img.shields.io/badge/tests-173%20passing-success)](#testing)
 [![Status](https://img.shields.io/badge/status-beta-orange)](#status--roadmap)
 
 > **Beta software.** The Circuit SDK is under active development. Expect breaking changes between releases, incomplete features, and rough edges. Agents move real value (trades + x402 payments) — use small amounts until you're comfortable with how it behaves.
@@ -119,8 +119,8 @@ One npm workspace of scoped packages (`@circuit/sdk` re-exports them all), plus 
 | **`@circuit/core`** | http · injectable config · ed25519 identity · owner-auth (per-owner control-plane request signing) · shared types. **Zero deps.** | — |
 | **`@circuit/inference`** | OpenAI-compatible client for the DLLM mesh (`chat`, `chatStream`, `listModels`). | core · x402 |
 | **`@circuit/data`** | Typed client for 40+ Circuit Data API endpoints — full coverage (free + paid), with a generic `get()` escape hatch. | core · x402 |
-| **`@circuit/wallet`** | SOL/CIRC balances, transfers, Jupiter swaps, with multi-RPC failover. Implements `PaymentWallet`. | core · x402 · solana |
-| **`@circuit/agent`** | **The agent runtime** — `CircuitAgent` base class + off-box custody + verified-intent mode + local mock + scaffold. | core · inference · data · attest |
+| **`@circuit/wallet`** | SOL/CIRC balances, transfers, Jupiter swaps (multi-RPC failover); implements `PaymentWallet`; `walletTradeExecutor` drives self-custody agent trading. | core · x402 · solana |
+| **`@circuit/agent`** | **The agent runtime** — `CircuitAgent` base class + four custody modes (paper · self-custody · off-box signer · non-custodial vault) + verified-intent mode + scaffold. | core · inference · data · attest |
 | **`@circuit/attest`** | **[Verified Intents](docs/verified-intents.md)** — sign/verify evidence, the rule DSL + evaluator, and the signer's decision gate. **Zero deps** (beyond core). | core |
 | **`@circuit/node`** | Join/manage a mesh node from code (control plane + public registry). | core |
 | **`@circuit/onchain`** | CIRC balance + StakePoint stake verification + `mesh_registry` control-plane reads, via pure JSON-RPC. **No web3.js.** | core |
@@ -181,9 +181,9 @@ class DipBot extends CircuitAgent {
 new DipBot().run();
 ```
 
-**Custody is off-box.** The agent holds only a scoped session token + epoch — never the key. `this.buy`/`this.sell` go to the signer, which holds the wallet, enforces `buy`/`sell`-only policy (max per-trade, max per-day, cooldown, allow/deny lists), and fences out a crashed instance with a monotonic epoch.
+**Custody is off-box *on the mesh*.** There the agent holds only a scoped session token + epoch — never the key; `this.buy`/`this.sell` go to the signer, which holds the wallet, enforces `buy`/`sell`-only policy (max per-trade, max per-day, cooldown, allow/deny lists), and fences out a crashed instance with a monotonic epoch. On **your own** box you can instead trade **self-custody** with your own keypair (`executor: walletTradeExecutor(wallet)` → `LocalKeypairCustody`) or non-custodially through the on-chain vault — same strategy code, you pick custody by environment.
 
-Run it locally and the same code **paper-trades with identical policy semantics** (no signer needed); deploy it and it runs on the CPU mesh. Scaffold a project:
+Run it locally and the same code **paper-trades with identical policy semantics** (no signer needed) — or trade live self-custody with your own keypair; deploy it and it runs off-box on the CPU mesh. Scaffold a project:
 
 ```bash
 npx circuit-agent new my-bot
@@ -242,7 +242,7 @@ circuit-py/  Python consume client (inference + data + x402)
 
 ```bash
 npm install
-npm test            # 151 TS tests, zero-transpile
+npm test            # 161 TS tests, zero-transpile
 npm run typecheck   # tsc --noEmit, all 12 packages
 npm run build       # tsup → dist/*.js + .d.ts (publishing)
 cd circuit-py && python3 -m unittest discover -s tests   # 12 Python tests
@@ -254,7 +254,7 @@ Design + rationale in **[SDK.md](SDK.md)** and **[docs/architecture.md](docs/arc
 
 ## Status & roadmap
 
-**Beta.** All twelve TypeScript packages + the `circuit` CLI (in `apps/cli`) + the Python client are built, extracted faithfully from the live ecosystem, and covered by **163 tests** (151 TS + 12 Python), all typecheck-clean. The CLI lives in the monorepo and consumes `@circuit/*` directly, so the SDK is the single source for the shared logic (bundle codec, wallet, owner-auth). The full roadmap — spine → consume → agents → contributor → extended (bundles · vault · on-chain control-plane reads) — is complete.
+**Beta.** All twelve TypeScript packages + the `circuit` CLI (in `apps/cli`) + the Python client are built, extracted faithfully from the live ecosystem, and covered by **173 tests** (161 TS + 12 Python), all typecheck-clean. The CLI lives in the monorepo and consumes `@circuit/*` directly, so the SDK is the single source for the shared logic (bundle codec, wallet, owner-auth). The full roadmap — spine → consume → agents → contributor → extended (bundles · vault · on-chain control-plane reads) — is complete.
 
 Working today: paid inference + data, CIRC wallet ops, the `CircuitAgent` runtime over off-box custody (with a local mock), the mesh + registry clients, and on-chain stake reads. Next: streaming for `circuit-py`, a Solana `PaymentWallet` for Python, and the first public npm release (version bump + publish).
 

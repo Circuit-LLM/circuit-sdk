@@ -61,6 +61,11 @@ You touch only `setup()` and `tick()` (and optionally `onDrain()`/`checkpoint()`
 
 ## Off-box custody
 
+> `@circuit/agent` has **four custody modes** — paper (`MockCustody`), self-custody (`LocalKeypairCustody`,
+> [see below](#local-paper-mockcustody--self-custody-localkeypaircustody)), off-box **signer**, and the
+> non-custodial on-chain **vault**. This section is the **off-box signer** — the model for running on the
+> *mesh* (a stranger's CPU), where the agent must never hold the key.
+
 `this.buy` / `this.sell` go to **custody**, not to a key the agent holds:
 
 - **The key never touches the host.** The signer generates a Solana wallet per agent and seals it at
@@ -158,18 +163,32 @@ no timers, no real signer, and no `process.exit`.
 
 ---
 
-## Local dev with MockCustody
+## Local: paper (MockCustody) + self-custody (LocalKeypairCustody)
 
-With no `CIRCUIT_SIGNER_URL`, the agent uses **`MockCustody`** — paper trading that mirrors the signer's
-policy checks and returns the **same rejection codes**. So the exact same agent behaves identically in
-dev and on the cloud:
+With no `CIRCUIT_SIGNER_URL` and no executor, the agent uses **`MockCustody`** — paper trading that
+mirrors the signer's policy checks and returns the **same rejection codes**. So the exact same agent
+behaves identically in dev and on the cloud:
 
 ```ts
-// no signer → MockCustody, with a policy you control:
+// no signer, no executor → MockCustody (paper), with a policy you control:
 const bot = new DipBot({ policy: { maxNotionalSol: 0.02, cooldownMs: 0 } });
 await bot.start();
 await bot.runTick();          // drive ticks by hand in tests
 ```
+
+To trade **for real on hardware you control**, pass a self-custody executor — the agent then uses
+**`LocalKeypairCustody`**, signing each `buy`/`sell` locally with your own keypair through the same
+policy gate. It goes live when `CIRCUIT_AGENT_PAPER=0`:
+
+```ts
+import { makeWallet, walletTradeExecutor } from '@circuit/wallet';
+const wallet = makeWallet();                                       // your keypair (CIRCUIT_WALLET / keyfile)
+const bot = new DipBot({ executor: walletTradeExecutor(wallet) }); // → LocalKeypairCustody
+```
+
+> ⚠ Unlike the off-box signer or the vault, `LocalKeypairCustody` holds a **withdraw-capable key on the
+> host** — use it only on a machine you control, never on the mesh (there the off-box signer or the
+> non-custodial vault is the correct custody).
 
 ---
 

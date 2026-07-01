@@ -118,7 +118,7 @@ npm run build      # each package: tsup src/index.ts → dist/index.js (ESM) + d
 ## Testing
 
 ```bash
-npm test            # 151 TS tests across all packages, zero-transpile (node:test + strip-types)
+npm test            # 161 TS tests across all packages, zero-transpile (node:test + strip-types)
 npm run typecheck   # tsc --noEmit on all 12 packages (strict + noUncheckedIndexedAccess)
 cd circuit-py && python3 -m unittest discover -s tests   # 12 Python tests
 ```

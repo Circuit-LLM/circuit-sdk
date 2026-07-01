@@ -1,6 +1,6 @@
 # Circuit SDK — Specification
 
-**Status:** IMPLEMENTED / v0. 12 `@circuit/*` packages + the `circuit` CLI (in `apps/cli`, consuming the SDK) + a Python consume client; 151 TS tests green, typecheck + dist build clean. This spec describes the shipped code and stays the contract we build against.
+**Status:** IMPLEMENTED / v0. 12 `@circuit/*` packages + the `circuit` CLI (in `apps/cli`, consuming the SDK) + a Python consume client; 161 TS tests green, typecheck + dist build clean. This spec describes the shipped code and stays the contract we build against.
 **Repo:** `Circuit-LLM/circuit-sdk` (private).
 **One line:** the developer toolkit for building on the Circuit ecosystem — **x402-paid decentralized
 inference, data, and wallet ops**, and **hosted autonomous agents with off-box (non-custodial)
@@ -167,7 +167,7 @@ const quote = await data.quote();       // FREE — live pricing for every endpo
   validators/bridge), pools, nft, scan. Free: `quote`, `prices`, `status`, `probe`, swarm reads.
 - Each paid method routes through `@circuit/x402`. Types generated from the endpoint catalog.
 
-### 4.5 `@circuit/wallet` — SOL/CIRC + swaps  ·  status: EXTRACT
+### 4.5 `@circuit/wallet` — SOL/CIRC + swaps  ·  status: DONE
 
 ```ts
 import { makeWallet } from '@circuit/wallet';
@@ -178,10 +178,12 @@ await w.swap({ inMint, outMint, amount });   // Jupiter Ultra
 ```
 
 Stateless factory ported from `circuit-cli/services/{wallet,solana}.js` (CIRC is Token-2022). Used by
-`@circuit/x402` to fund payments and by `@circuit/agent` for owner-side ops (never for agent signing —
-that's the off-box signer).
+`@circuit/x402` to fund payments and by `@circuit/agent` for owner-side ops. **`walletTradeExecutor(w)`**
+turns a keyed wallet into a self-custody `TradeExecutor` for `@circuit/agent`'s `LocalKeypairCustody`
+(buy = swap SOL→token, sell = swap token→SOL, signed locally) — so an agent on hardware you control
+trades with its own key, while on the mesh signing stays off-box.
 
-### 4.6 `@circuit/agent` — the agent runtime  ·  status: BUILD
+### 4.6 `@circuit/agent` — the agent runtime  ·  status: DONE
 
 Today an agent on `circuit-agent-cloud` must hand-wire the signer HTTP client, the session-token/epoch
 fence, `heartbeat.json`, log routing, and SIGTERM checkpointing (see `agentd/agentd.js`). The SDK
@@ -196,7 +198,7 @@ class DipBot extends CircuitAgent {
     const picks = await this.data.tokenTrending();
     const call  = await this.ai.chat({ messages: prompt(picks) });   // think
     const sig   = decide(call);
-    if (sig.buy) await this.buy(sig.mint, sig.sizeSol);              // act (off-box signer)
+    if (sig.buy) await this.buy(sig.mint, sig.sizeSol);              // act — via the selected custody
   }
   async onDrain(){ await this.checkpoint(); }        // node budget cut / reschedule
 }
@@ -204,9 +206,13 @@ new DipBot().run();                                  // runtime owns the rest
 ```
 
 The base class **owns**:
-- **Custody client** — reads `CIRCUIT_AGENT_ID/EPOCH/SESSION/ADDRESS` + `CIRCUIT_SIGNER_URL` from env;
-  `buy(mint,sizeSol)` / `sell(mint,amount)` → `POST /v1/agents/{id}/intent` with the epoch+token, and
-  handles `fenced` / `cooldown` / `over-trade-cap` / `token-denied` rejections (backoff, skip, surface).
+- **Custody** — `buy(mint,sizeSol)` / `sell(mint,amount)` go through a `Custody` chosen by environment;
+  all four modes share one `PolicyEngine` gate + rejection codes, so strategy code is identical across
+  them: **`SignerCustody`** (off-box signer — `CIRCUIT_SIGNER_URL` + epoch/session, the mesh default),
+  **`LocalKeypairCustody`** (self-custody — pass `executor: walletTradeExecutor(wallet)`; signs locally
+  on a box you control), **`VaultCustody`** (non-custodial on-chain vault), **`MockCustody`** (paper).
+  Selection order: explicit `custody` → `signerUrl` → `executor` → paper. Rejections (`fenced` /
+  `cooldown` / `over-trade-cap` / `token-denied`) are handled uniformly.
 - **Lifecycle** — `setup() → tick()` loop → `onDrain()`/SIGTERM → `checkpoint()` → clean exit(0).
 - **Heartbeat** — periodic `heartbeat.json` (state, uptime, pnl, positions, signedTrades) the host
   forwards to the control-plane.
@@ -219,13 +225,17 @@ Plus, critically:
   `verifiedTrade(inputs, evidence)`: the agent evaluates the rule locally and submits
   `{ intent, rule, inputs, evidence }`, which the off-box signer re-derives before signing (so a hostile
   host can't forge a trade). Built on `@circuit/attest` (§4.7); guide in `docs/verified-intents.md`.
-- **`MockCustody` adapter** — run the exact same agent locally in paper mode with no live signer, for
-  dev + CI. Runs the *same decision gate* as the real signer, so verified agents behave identically in
-  dev and on the cloud. `new DipBot({ custody: 'mock' }).run()`.
-- **Scaffold** — `npx @circuit/agent new my-bot` → a typed starter project (strategy stub, config
+- **Run anywhere, unchanged** — the same agent paper-trades locally with no signer (`MockCustody`),
+  trades live self-custody on your own box (`new DipBot({ executor: walletTradeExecutor(wallet) })` →
+  `LocalKeypairCustody`; live when `CIRCUIT_AGENT_PAPER=0`), or runs off-box on the mesh — all through
+  the *same decision gate*, so dev == prod.
+- **Scaffold** — `npx circuit-agent new my-bot` → a typed starter project (strategy stub, config
   schema, local-run script, deploy notes).
-- **Types** — `AgentConfig`, `AgentSpec`, `Policy` (`maxNotionalSol`, `maxDailySol`, `cooldownMs`,
-  `allow:['buy','sell']`, `denyTokens`, `allowTokens`, `paper`), `Heartbeat`, `IntentResult`.
+- **Types** — `AgentOptions`, `AgentContext`, `Intent` / `IntentResult`, `Policy` (`maxNotionalSol`,
+  `maxDailySol`, `cooldownMs`, `allow:['buy','sell']`, `denyTokens`, `allowTokens`, `paper`), `Position`,
+  `Heartbeat`, plus the custody surface: `Custody` / `SignerCustody` / `LocalKeypairCustody` /
+  `VaultCustody` / `MockCustody` / `ExecutorCustody` + `TradeExecutor` (`VaultTradeExecutor` = deprecated
+  alias) + `AgentOptions.executor`.
 
 **Scope note:** the *hosting* layer (control-plane placement, node-host, failover) is general-purpose
 CPU compute — custody (buy/sell) is the trading-specific add-on. So `@circuit/agent` supports **two
@@ -338,11 +348,11 @@ copy becomes a re-export — tracked follow-on).
 
 | Phase | Ships | Why |
 |---|---|---|
-| **0 — spine** ✅ | `@circuit/x402` + `@circuit/core` | **DONE** — extracted, DI-cleaned, 31 tests green (see `packages/`) |
-| **1 — consume SDK** ✅ | `@circuit/inference` + `@circuit/data` + `@circuit/wallet` + `@circuit/sdk` meta | **DONE** — extracted onto the spine; 50 tests green (`circuit-py` deferred) |
-| **2 — agent runtime** ✅ | `@circuit/agent` (base class · custody client · `MockCustody` · scaffold) | **DONE** — `CircuitAgent` over off-box custody; 64 tests green |
-| **3 — contribute** ✅ | `@circuit/node` + `@circuit/onchain` | **DONE** — mesh control + node registry + StakePoint/CIRC reads; 81 tests green |
-| **4 — extended** ✅ | `@circuit/bundle` + `@circuit/vault` + `@circuit/onchain` mesh_registry reader | **DONE** — content-addressed signed bundles (cross-impl golden vector), the non-custodial vault client + `makeVaultExecutor`, and on-chain control-plane reads; **151 tests green total**, typecheck + dist build clean |
+| **0 — spine** ✅ | `@circuit/x402` + `@circuit/core` | **DONE** — extracted, DI-cleaned, 41 tests green (see `packages/`) |
+| **1 — consume SDK** ✅ | `@circuit/inference` + `@circuit/data` + `@circuit/wallet` + `@circuit/sdk` meta | **DONE** — extracted onto the spine; 72 tests green (`circuit-py` deferred) |
+| **2 — agent runtime** ✅ | `@circuit/agent` (base class · four custody modes · scaffold) | **DONE** — `CircuitAgent` over custody-agnostic trading (paper · self-custody · off-box signer · vault); 104 tests green |
+| **3 — contribute** ✅ | `@circuit/node` + `@circuit/onchain` | **DONE** — mesh control + node registry + StakePoint/CIRC reads; 127 tests green |
+| **4 — extended** ✅ | `@circuit/bundle` + `@circuit/vault` + `@circuit/onchain` mesh_registry reader | **DONE** — content-addressed signed bundles (cross-impl golden vector), the non-custodial vault client + `makeVaultExecutor`, and on-chain control-plane reads; **161 TS tests green total**, typecheck + dist build clean |
 
 **MVP (end of Phase 1):** `npm i @circuit/sdk`, load a wallet, call `inference.chat()` and
 `data.tokenPrice()` with automatic CIRC payment — a working, documented quickstart.

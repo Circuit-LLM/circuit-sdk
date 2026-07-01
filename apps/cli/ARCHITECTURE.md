@@ -28,13 +28,17 @@ src/
 │  ├─ inference.js          DLLM chat (stream + once) through the x402 gateway
 │  ├─ priceFeed.js          prices, candles, active, slippage, token
 │  ├─ circuitNode.js        network, swarm/*, trending, dex
-│  └─ node.js               GPU join installer
+│  ├─ node.js               GPU join installer
+│  ├─ agents.js             agent facade + drivers/{local,cloud} (create/start/host)
+│  ├─ owner-auth.js         wallet-signed control-plane auth (matches @circuit/core)
+│  ├─ bundle.js             content-addressed agent bundles (via @circuit/bundle)
+│  └─ vault.js              non-custodial on-chain Agent Vault client
 ├─ ui/                      ← draw. pure render, ZERO domain logic
 │  ├─ banner.js  layout.js  components.js  screen.js  chart.js  prompts.js
 │  └─ index.js              barrel — one import surface for the UI
 ├─ modules/                 ← features = services + ui. each owns screen + verbs
-│  ├─ chat  wallet  data  swarm  network  node  status  about
-└─ util/  format.js
+│  ├─ chat  wallet  data  swarm  agent  network  node  status  about
+└─ util/  async.js  format.js
 ```
 
 ---
@@ -51,6 +55,7 @@ Each service is a thin client over one part of the ecosystem. They return plain 
 - **x402.js** — `withX402(requestFn, wallet)` performs the request, and on `402` parses the payment requirement, pays CIRC, and retries with `X-Payment-Signature`.
 - **inference.js** — `chat` / `chatStream` build the request and run it through the x402 flow; `chatStream` parses the SSE token stream.
 - **priceFeed.js / circuitNode.js / node.js** — read clients for market data, the swarm registry, network stats, and the GPU installer.
+- **agents.js / drivers / owner-auth.js / bundle.js / vault.js** — the agent-cloud layer: create/start/host agents (local or mesh), wallet-signed control-plane auth, content-addressed agent bundles, and the non-custodial on-chain Agent Vault client.
 
 ### ui/ — the presentation boundary
 

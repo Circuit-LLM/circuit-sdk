@@ -5,6 +5,11 @@
 > CIRC that pays for it, watch the mesh and the agent swarm, query on-chain data,
 > and contribute a GPU — all from one beautiful CLI.
 
+> **Note — this is the original design plan, kept for rationale.** The shipped CLI has since diverged
+> (notably it adds the **`agent`** module → **9 modules**, with the vault/owner-recovery verbs). For the
+> current, code-verified command + module reference, see **[docs/commands.md](docs/commands.md)** and
+> **[ARCHITECTURE.md](ARCHITECTURE.md)** — those are the source of truth; the sections below describe intent.
+
 ## 1. Principles
 
 1. **Design-first.** Every screen is composed from one design system (`theme.js`

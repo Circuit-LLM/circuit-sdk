@@ -153,6 +153,9 @@ makeWallet(opts?): Wallet;          // loads CIRCUIT_WALLET if no keypair given
 // keypairs
 keypairFromSecret(input): Keypair;  loadKeypairFromEnv(env?): Keypair | null;
 generateKeypair(): Keypair;  secretKeyBase58(kp): string;  isValidAddress(s): boolean;
+
+// self-custody executor — drives @circuit/agent's LocalKeypairCustody
+walletTradeExecutor(wallet): WalletExecutor;   // buy: SOL→token (sizeSol); sell: amount (base units)→SOL; signs locally
 ```
 
 Reads and sends **fail over** across `[primary, …public fallbacks]` on a rate-limit or per-try timeout;
@@ -164,8 +167,8 @@ only "heavy" package. Inject `connection`/`connections` for tests or a custom RP
 
 ## `@circuit/agent`
 
-The agent runtime. You extend `CircuitAgent`; the runtime owns env wiring, off-box custody, the
-heartbeat, logs, and lifecycle. Full guide: [agents.md](./agents.md).
+The agent runtime. You extend `CircuitAgent`; the runtime owns env wiring, custody (paper · self-custody
+· off-box signer · non-custodial vault), the heartbeat, logs, and lifecycle. Full guide: [agents.md](./agents.md).
 
 ```ts
 abstract class CircuitAgent {
@@ -181,11 +184,16 @@ abstract class CircuitAgent {
   readonly ctx: AgentContext;  readonly custody: Custody;
 }
 
-// custody
+// custody — kind: 'offbox-signer' | 'local' | 'local-keypair' | 'vault'; picked by env, all share one policy gate
 interface Custody { intent(i); buy(token, sizeSol, opts?); sell(token, opts?); verifiedIntent?(vi); kind; address; paper; }
-class SignerCustody implements Custody {}     // the real off-box signer client
-class MockCustody implements Custody {}        // local paper trading, same policy + gate semantics
+class SignerCustody implements Custody {}             // off-box signer client (the mesh default)
+class MockCustody implements Custody {}                // local paper trading
+class LocalKeypairCustody extends ExecutorCustody {}   // self-custody — signs locally via an executor
+class VaultCustody extends ExecutorCustody {}          // non-custodial on-chain vault (opt-in)
+abstract class ExecutorCustody implements Custody {}   // shared base for local-keypair + vault
+interface TradeExecutor { execute(intent, vi?) }       // injected signer/route (VaultTradeExecutor = deprecated alias)
 const DEFAULT_POLICY; normalizePolicy(p?);
+// AgentOptions.executor: pass walletTradeExecutor(wallet) → LocalKeypairCustody (no signerUrl needed)
 
 // scaffold
 scaffold(name): Record<string,string>;  writeScaffold(name, dir): Promise<string[]>;

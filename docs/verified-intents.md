@@ -12,6 +12,10 @@ signed that your rule + the real data don't justify.
 > This is the software path. The hardware path — a TEE that attests the whole agent, for strategies the
 > signer *can't* re-check — is [SEALED_AGENTS.md](https://github.com/Circuit-LLM/circuit-agent-cloud/blob/main/docs/SEALED_AGENTS.md).
 > Full threat model + spec: [VERIFIED_INTENTS.md](https://github.com/Circuit-LLM/circuit-agent-cloud/blob/main/docs/VERIFIED_INTENTS.md).
+>
+> This gap only exists when the **host is untrusted** (the mesh). Running an agent **self-custody on your
+> own box** (`LocalKeypairCustody`) or through the **non-custodial vault** removes the hostile-host premise
+> — so Verified Intents is then optional rather than load-bearing.
 
 ---
 
