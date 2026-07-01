@@ -112,7 +112,7 @@ export interface Heartbeat {
   pnlPct: number;
   positions: Position[];
   paper: boolean;
-  custody: 'offbox-signer' | 'local' | 'vault';
+  custody: 'offbox-signer' | 'local' | 'local-keypair' | 'vault';
   address?: string;
   signedTrades: number;
   [k: string]: unknown;

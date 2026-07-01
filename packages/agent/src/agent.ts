@@ -26,7 +26,7 @@ import {
   type Policy,
   type Position,
 } from './types.ts';
-import { type Custody, MockCustody, SignerCustody, type SellOpts } from './custody.ts';
+import { type Custody, LocalKeypairCustody, MockCustody, SignerCustody, type TradeExecutor, type SellOpts } from './custody.ts';
 import { evaluateRule, type Evidence, type Rule, type RuleInputs, type VerifiedIntent } from '@circuit/attest';
 
 /** The slice of fs the agent uses — injectable for tests. */
@@ -44,9 +44,13 @@ export interface AgentOptions {
   /** Override the env-derived context (tests). */
   context?: Partial<AgentContext>;
   env?: NodeJS.ProcessEnv;
-  /** Inject a custody (tests / explicit). Else: SignerCustody if signerUrl, else MockCustody. */
+  /** Inject a custody (tests / explicit). Otherwise derived: SignerCustody if signerUrl (mesh), else
+   *  LocalKeypairCustody if `executor` is set (self-custody on your box), else MockCustody (paper). */
   custody?: Custody;
-  /** Local policy for MockCustody when there's no signer. */
+  /** Self-custody executor (e.g. walletTradeExecutor from @circuit/wallet). When set and there is no
+   *  signerUrl, the agent trades locally with your keypair — paper unless CIRCUIT_AGENT_PAPER=0. */
+  executor?: TradeExecutor;
+  /** Local policy for MockCustody / LocalKeypairCustody when there's no signer. */
   policy?: Partial<Policy>;
   /** Verified-intent mode (docs/VERIFIED_INTENTS.md): the owner-committed decision rule, the
    *  producer keys the gate trusts, and the evidence freshness window. Enables this.verifiedTrade(). */
@@ -119,13 +123,23 @@ export abstract class CircuitAgent {
             address: this.ctx.address,
             paper: this.ctx.paper,
           })
-        : new MockCustody({
-            address: this.ctx.address,
-            policy: opts.policy,
-            rule: opts.rule,
-            acceptedKeys: opts.acceptedKeys,
-            evidenceMaxAgeMs: opts.evidenceMaxAgeMs,
-          }));
+        : opts.executor
+          ? new LocalKeypairCustody({
+              executor: opts.executor,
+              address: this.ctx.address,
+              paper: this.ctx.paper,
+              policy: opts.policy,
+              rule: opts.rule,
+              acceptedKeys: opts.acceptedKeys,
+              evidenceMaxAgeMs: opts.evidenceMaxAgeMs,
+            })
+          : new MockCustody({
+              address: this.ctx.address,
+              policy: opts.policy,
+              rule: opts.rule,
+              acceptedKeys: opts.acceptedKeys,
+              evidenceMaxAgeMs: opts.evidenceMaxAgeMs,
+            }));
     this.rule = opts.rule;
     this.logFile = join(this.ctx.dataDir, 'agent.log');
     this.hbFile = join(this.ctx.dataDir, 'heartbeat.json');

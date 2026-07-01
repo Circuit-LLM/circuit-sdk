@@ -1,9 +1,13 @@
-// Custody — how an agent gets a trade authorized + signed. Two implementations:
-//   SignerCustody — the real off-box signer (circuit-agent-cloud/signer): the agent
-//     holds only a scoped session token + epoch (the fence); the KEY never touches
-//     this host. POST /v1/agents/{id}/intent → signed attestation or a rejection code.
-//   MockCustody   — local paper trading, no signer, mirroring the signer's policy
-//     checks so the SAME agent behaves identically in local dev and on the cloud.
+// Custody — how an agent gets a trade authorized + signed. Four implementations, all sharing one
+// PolicyEngine gate + rejection codes so the SAME agent behaves identically across every mode:
+//   SignerCustody       — off-box signer (circuit-agent-cloud/signer): the agent holds only a scoped
+//                         session token + epoch (the fence); the KEY never touches this host. POST
+//                         /v1/agents/{id}/intent → signed attestation or a rejection code. The mesh default.
+//   MockCustody         — local paper trading, no signer (dev/CI).
+//   LocalKeypairCustody — self-custody: signs locally with your own keypair via an injected executor
+//                         (holds a withdraw-capable key → only for hardware you control).
+//   VaultCustody        — non-custodial: trades run through the on-chain Agent Vault; the owner is the
+//                         sole withdraw authority. LocalKeypairCustody + VaultCustody share ExecutorCustody.
 
 import {
   DEFAULT_POLICY,
@@ -24,7 +28,7 @@ export interface SellOpts {
 }
 
 export interface Custody {
-  readonly kind: 'offbox-signer' | 'local' | 'vault';
+  readonly kind: 'offbox-signer' | 'local' | 'local-keypair' | 'vault';
   readonly address: string | null;
   readonly paper: boolean;
   /** Submit a raw intent. Resolves to a signed result or a rejection (never throws). */
@@ -261,54 +265,59 @@ export class MockCustody implements Custody {
   }
 }
 
-// ── on-chain vault (non-custodial) ────────────────────────────────────────────
+// ── executor-backed custody (shared base: vault + local keypair) ──────────────
 
-/** Executes a guarded vault trade on-chain. Injected so circuit-sdk stays free of a web3/program
- *  dependency: the concrete executor (Jupiter route + circuit-agent-vault VaultClient.trade(),
- *  signed by the delegate key on THIS host) lives where both are available (the CLI / host adapter).
- *  The delegate key it signs with can ONLY trade — never withdraw — so the worst a tampered host can
- *  do is a bad-but-bounded swap; the on-chain guard makes theft impossible. When `vi` is present the
- *  executor attaches the Ed25519 oracle attestation (the vault's on-chain Verified-Intents proof). */
-export interface VaultTradeExecutor {
+/** Lands a buy/sell and returns its signature. Injected so @circuit/agent stays free of a web3/program
+ *  dependency — the concrete executor (Jupiter route + signing) lives where web3 is available:
+ *  `walletTradeExecutor` (@circuit/wallet) for a local keypair, or the CLI/host adapter's vault
+ *  executor. When `vi` is present the executor may attach the Ed25519 oracle attestation (the vault's
+ *  on-chain Verified-Intents proof). */
+export interface TradeExecutor {
   execute(intent: Intent, vi?: VerifiedIntent): Promise<{ signature: string; solValue?: number }>;
 }
+/** @deprecated Alias of {@link TradeExecutor}, kept for back-compat. */
+export type VaultTradeExecutor = TradeExecutor;
 
-export interface VaultCustodyOptions {
-  /** The vault PDA, for display/heartbeat. */
+export interface ExecutorCustodyOptions {
+  /** The wallet / vault address, for display + heartbeat. */
   address?: string | null;
   policy?: Partial<Policy>;
-  /** false → submit trades on-chain via `executor`; true → paper-trade locally (default true). */
+  /** false → sign + submit real trades via `executor`; true → paper-trade locally (default true). */
   paper?: boolean;
-  /** Required when paper=false: lands the guarded trade on-chain. */
-  executor?: VaultTradeExecutor;
-  /** Verified-intent mode: the off-chain pre-gate (the CHAIN is the real enforcement — the vault's
-   *  committed rule + Ed25519 attestation; this fails fast and keeps dev == prod). */
+  /** Required when paper=false: lands the trade (signs + sends). */
+  executor?: TradeExecutor;
+  /** Verified-intent pre-gate: re-run the committed rule on authenticated inputs before executing
+   *  (same decision gate as the signer; fast-fails an off-rule trade and keeps dev == prod). */
   rule?: Rule;
   acceptedKeys?: Record<string, 'data' | 'inference'>;
   evidenceMaxAgeMs?: number;
   now?: () => number;
 }
+export type VaultCustodyOptions = ExecutorCustodyOptions;
+export type LocalKeypairCustodyOptions = ExecutorCustodyOptions;
 
 /**
- * Non-custodial custody: trades run through the on-chain Agent Vault (circuit-agent-vault). The agent
- * holds only the DELEGATE key (trade-only); the owner — whose key Circuit never sees — is the sole
- * withdraw authority. Same Custody interface as the signer, so the strategy code is unchanged; the
- * difference is where trust lives: a program invariant, not a trusted server. Policy is enforced here
- * (fast-fail, identical codes to MockCustody/signer) AND on-chain (the authoritative boundary).
+ * Shared base for custody that authorizes locally (PolicyEngine) then delegates execution to an
+ * injected {@link TradeExecutor}. The concrete modes differ only in WHERE the executor signs and the
+ * success code: {@link VaultCustody} (on-chain guard, non-custodial) and {@link LocalKeypairCustody}
+ * (self-custody). Policy gate + rejection codes are identical to MockCustody/signer, so the same
+ * strategy code runs unchanged across every custody mode.
  */
-export class VaultCustody implements Custody {
-  readonly kind = 'vault' as const;
+export abstract class ExecutorCustody implements Custody {
+  abstract readonly kind: Custody['kind'];
+  /** Success code for a landed trade; the failure code is `${tradeCode}-failed`. */
+  protected abstract readonly tradeCode: string;
   readonly address: string | null;
   readonly paper: boolean;
   readonly policy: Policy;
   private readonly engine: PolicyEngine;
-  private readonly executor?: VaultTradeExecutor;
+  private readonly executor?: TradeExecutor;
   private readonly now: () => number;
   private readonly rule?: Rule;
   private readonly acceptedKeys: Record<string, 'data' | 'inference'>;
   private readonly evidenceMaxAgeMs?: number;
 
-  constructor(o: VaultCustodyOptions = {}) {
+  constructor(o: ExecutorCustodyOptions = {}) {
     this.paper = o.paper ?? true;
     this.policy = normalizePolicy({ ...DEFAULT_POLICY, ...o.policy, paper: this.paper });
     this.address = o.address ?? null;
@@ -324,9 +333,9 @@ export class VaultCustody implements Custody {
     return this.run(intent);
   }
 
-  /** Verified-intent path: the off-chain decision gate (mirrors the signer) THEN the on-chain trade,
-   *  whose executor attaches the oracle attestation the vault verifies. Defense in depth — the chain
-   *  refuses an off-rule trade regardless, but failing fast here avoids burning a transaction. */
+  /** Verified-intent path: re-run the committed rule on authenticated inputs (defense in depth with
+   *  the authoritative on-chain check), then execute — passing the full `vi` so a vault executor can
+   *  attach the oracle attestation. */
   async verifiedIntent(vi: VerifiedIntent): Promise<IntentResult> {
     if (this.rule) {
       const g = decisionGate(vi, {
@@ -346,13 +355,13 @@ export class VaultCustody implements Custody {
     if (this.paper) {
       return { ok: true, code: 'paper-local', signature: null, paper: true, submitted: false, daySpentSol: a.daySpentSol, address: this.address ?? undefined };
     }
-    if (!this.executor) return reject('no-executor', 'VaultCustody is live (paper=false) but no trade executor was provided');
+    if (!this.executor) return reject('no-executor', `${this.kind} custody is live (paper=false) but no trade executor was provided`);
     try {
       const { signature, solValue } = await this.executor.execute(intent, vi);
-      return { ok: true, code: 'vault-trade', signature, txid: signature, submitted: true, paper: false, solValue, daySpentSol: a.daySpentSol, address: this.address ?? undefined };
+      return { ok: true, code: this.tradeCode, signature, txid: signature, submitted: true, paper: false, solValue, daySpentSol: a.daySpentSol, address: this.address ?? undefined };
     } catch (e) {
       this.engine.revert(a); // the trade never landed — don't let it consume the day's budget/cooldown
-      return { ok: false, code: 'vault-trade-failed', error: (e as Error).message };
+      return { ok: false, code: `${this.tradeCode}-failed`, error: (e as Error).message };
     }
   }
 
@@ -362,4 +371,33 @@ export class VaultCustody implements Custody {
   sell(token: string, opts: SellOpts = {}): Promise<IntentResult> {
     return this.intent({ kind: 'sell', token, ...opts });
   }
+}
+
+// ── on-chain vault (non-custodial) ────────────────────────────────────────────
+
+/**
+ * Non-custodial custody: trades run through the on-chain Agent Vault (circuit-agent-vault). The agent
+ * holds only the DELEGATE key (trade-only); the owner — whose key Circuit never sees — is the sole
+ * withdraw authority. Trust lives in a program invariant, not a trusted server. `executor` = Jupiter
+ * route + `VaultClient.trade()`; pass a `rule` to fast-fail an off-rule trade before burning a tx.
+ */
+export class VaultCustody extends ExecutorCustody {
+  readonly kind = 'vault' as const;
+  protected readonly tradeCode = 'vault-trade';
+}
+
+// ── local keypair (self-custody, your own trusted box) ────────────────────────
+
+/**
+ * Self-custody: trades are signed LOCALLY with your own keypair (via an injected executor — typically
+ * `walletTradeExecutor` from @circuit/wallet). The simplest real-trading path for an agent on hardware
+ * YOU control — no signer, no vault. Same gate + rejection codes as every other mode, so identical
+ * strategy code runs paper → local-keypair → signer → vault unchanged.
+ *
+ * ⚠ Unlike the signer/vault, this holds a withdraw-capable key on the host — only appropriate on a
+ * machine you control, never on the mesh (there the off-box signer or the on-chain vault is correct).
+ */
+export class LocalKeypairCustody extends ExecutorCustody {
+  readonly kind = 'local-keypair' as const;
+  protected readonly tradeCode = 'local-trade';
 }
