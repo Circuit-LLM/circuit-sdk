@@ -343,5 +343,5 @@ data = Data(wallet=my_wallet)                    # .token_price(mint), .market_o
 x402 = X402Client(wallet=my_wallet, max_spend_raw=500_000_000)
 ```
 
-Both the HTTP transport and the wallet are injectable. Scope: inference + data + x402 (streaming and a
-built-in Solana wallet are TypeScript-only for now).
+Both the HTTP transport and the wallet are injectable. Scope: inference + data + x402. Streaming and a
+built-in Solana wallet are TypeScript-only; in Python you bring your own `PaymentWallet`.

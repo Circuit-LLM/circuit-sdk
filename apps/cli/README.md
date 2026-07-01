@@ -16,7 +16,7 @@
 
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org)
 [![Version](https://img.shields.io/badge/version-0.2.1-blue)](https://github.com/Circuit-LLM/circuit-sdk/releases)
-[![Status](https://img.shields.io/badge/status-beta-orange)](https://github.com/Circuit-LLM/circuit-cli)
+[![Status](https://img.shields.io/badge/status-beta-orange)](https://github.com/Circuit-LLM/circuit-sdk)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
 
 > **Beta software.** circuit-cli is under active development. Expect breaking changes between releases, incomplete features, and rough edges. Chat spends real CIRC and agents trade real funds — start small until you're comfortable with how it behaves.
@@ -221,13 +221,12 @@ src/
   util/      async · format
 ```
 
-`core/registry.js` is the single source of truth — both the interactive menu and the command verbs are generated from it, so they never drift. Adding a feature is one `services` method + one `modules` screen + a line in the registry. The full design is in **[ARCHITECTURE.md](ARCHITECTURE.md)** and **[SPEC.md](SPEC.md)**.
+`core/registry.js` is the single source of truth — both the interactive menu and the command verbs are generated from it, so they never drift. Adding a feature is one `services` method + one `modules` screen + a line in the registry. The full design is in **[ARCHITECTURE.md](ARCHITECTURE.md)**.
 
 ---
 
 ## Docs
 
-- **[SPEC.md](SPEC.md)** — the design spec & build plan
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** — the layered architecture in depth
 - **[docs/commands.md](docs/commands.md)** — full command reference
 - **[docs/configuration.md](docs/configuration.md)** — config, wallet, endpoints, RPC

@@ -183,7 +183,7 @@ new DipBot().run();
 
 **Custody is off-box *on the mesh*.** There the agent holds only a scoped session token + epoch — never the key; `this.buy`/`this.sell` go to the signer, which holds the wallet, enforces `buy`/`sell`-only policy (max per-trade, max per-day, cooldown, allow/deny lists), and fences out a crashed instance with a monotonic epoch. On **your own** box you can instead trade **self-custody** with your own keypair (`executor: walletTradeExecutor(wallet)` → `LocalKeypairCustody`) or non-custodially through the on-chain vault — same strategy code, you pick custody by environment.
 
-Run it locally and the same code **paper-trades with identical policy semantics** (no signer needed) — or trade live self-custody with your own keypair; deploy it and it runs off-box on the CPU mesh. Scaffold a project:
+Run it locally and the same code **paper-trades with identical policy semantics** (no signer needed), trade live self-custody with your own keypair, deploy it off-box on the CPU mesh, or run it fully non-custodial through the on-chain vault — the same strategy across all four custody modes. Scaffold a project:
 
 ```bash
 npx circuit-agent new my-bot
@@ -195,7 +195,7 @@ Your agent runs on a stranger's CPU, and the protections hold anyway:
 
 - **No drain.** The signer's only verbs are `buy`/`sell` — no transfer/withdraw — so a hostile host can never move funds out. Period.
 - **No forged trades** — with **[Verified Intents](docs/verified-intents.md)**. Commit a decision rule, and the signer re-runs it on *authenticated* inputs (signed data / inference receipts / zkTLS) and signs **only** the trade that rule produces. A host that fully controls the agent still can't make it trade on its own terms — a tampered agent, faked data, or a host-chosen trade is rejected before signing. Pure software, any CPU.
-- **Works for any strategy.** Verified Intents covers any rule the signer can re-check — which is most agents (deterministic, or a rule over a signed-AI verdict). For a genuine black box, run it in a TEE: **[Sealed Agents](https://github.com/Circuit-LLM/circuit-agent-cloud/blob/main/docs/SEALED_AGENTS.md)**.
+- **Works for any strategy.** Verified Intents covers any rule the signer can re-check — which is most agents (deterministic, or a rule over a signed-AI verdict). For a genuine black box, run it in a TEE with **Sealed Agents**.
 
 Full guide — custody, lifecycle, the host can/can't table, the inference-payment vs. trading-custody distinction: **[docs/agents.md](docs/agents.md)**.
 
@@ -248,7 +248,7 @@ npm run build       # tsup → dist/*.js + .d.ts (publishing)
 cd circuit-py && python3 -m unittest discover -s tests   # 12 Python tests
 ```
 
-Design + rationale in **[SDK.md](SDK.md)** and **[docs/architecture.md](docs/architecture.md)**.
+Design principles, the dependency graph, and the build model are in **[docs/architecture.md](docs/architecture.md)**.
 
 ---
 
@@ -256,20 +256,20 @@ Design + rationale in **[SDK.md](SDK.md)** and **[docs/architecture.md](docs/arc
 
 **Beta.** All twelve TypeScript packages + the `circuit` CLI (in `apps/cli`) + the Python client are built, extracted faithfully from the live ecosystem, and covered by **176 tests** (164 TS + 12 Python), all typecheck-clean. The CLI lives in the monorepo and consumes `@circuit/*` directly, so the SDK is the single source for the shared logic (bundle codec, wallet, owner-auth). The full roadmap — spine → consume → agents → contributor → extended (bundles · vault · on-chain control-plane reads) — is complete.
 
-Working today: paid inference + data, CIRC wallet ops, the `CircuitAgent` runtime over off-box custody (with a local mock), the mesh + registry clients, and on-chain stake reads. Next: streaming for `circuit-py`, a Solana `PaymentWallet` for Python, and the first public npm release (version bump + publish).
+Working today: paid inference and data, CIRC wallet operations, the `CircuitAgent` runtime across the full custody spectrum (paper, self-custody, off-box signer, and the on-chain vault client), the mesh and registry clients, and on-chain stake reads. Planned: streaming and a native Solana `PaymentWallet` for the Python client.
 
 ---
 
 ## Docs
 
-- **[SDK.md](SDK.md)** — the full specification (architecture, per-package API, the custody model, the roadmap)
 - **[docs/getting-started.md](docs/getting-started.md)** — install, connect a wallet, your first paid call (TS + Python)
 - **[docs/packages.md](docs/packages.md)** — every package's API surface
 - **[docs/cli.md](docs/cli.md)** — the `circuit` terminal console (modules, commands, config) → deep dive in **[apps/cli/](apps/cli/README.md)**
 - **[docs/x402.md](docs/x402.md)** — the payment spine, client + server
-- **[docs/agents.md](docs/agents.md)** — write + host an agent, off-box custody in depth
+- **[docs/agents.md](docs/agents.md)** — write + host an agent, the four custody modes in depth
+- **[docs/verified-intents.md](docs/verified-intents.md)** — commit a decision rule; the signer signs only the trade that rule produces
 - **[docs/contributing-a-node.md](docs/contributing-a-node.md)** — join the mesh, read stake on-chain
-- **[docs/architecture.md](docs/architecture.md)** — the monorepo, dual-mode build, the two identity schemes
+- **[docs/architecture.md](docs/architecture.md)** — design principles, the monorepo, the dual-mode build
 
 > **`npm audit` after install** reports **3 high** advisories — all transitive dependencies of the Solana SDK (`bigint-buffer` in `@solana/spl-token`'s u64 decoder), with no upstream fix and not reachable from untrusted input here. **Do not run `npm audit fix --force`** — it downgrades `@solana/web3.js`/`spl-token` to 2019-era versions and breaks the build. The `uuid` and `esbuild` advisories are already pinned out via `overrides` in the root [package.json](package.json). Details: **[apps/cli/SECURITY.md](apps/cli/SECURITY.md#dependencies--npm-audit)**.
 
@@ -279,7 +279,7 @@ Working today: paid inference + data, CIRC wallet ops, the `CircuitAgent` runtim
 
 [Website](https://circuitllm.xyz) · [OPS Terminal](https://circuitllm.xyz/data) · [Telegram](https://t.me/circuitllm) · [X / Twitter](https://x.com/CircuitLLM)
 
-Part of the Circuit ecosystem. The `circuit` terminal CLI now ships **in this repo** (`apps/cli`), built on the SDK — alongside [circuit-agent-cloud](https://github.com/Circuit-LLM/circuit-agent-cloud) (agent hosting), [circuit-agent-vault](https://github.com/Circuit-LLM/circuit-agent-vault) (the non-custodial vault), and the decentralized DLLM engine.
+Part of the Circuit ecosystem. The `circuit` terminal CLI now ships **in this repo** (`apps/cli`), built on the SDK — alongside [circuit-agent-cloud](https://github.com/Circuit-LLM/circuit-agent-cloud) (agent hosting), the on-chain **Agent Vault** (non-custodial trading custody), and the decentralized DLLM engine.
 
 ---
 

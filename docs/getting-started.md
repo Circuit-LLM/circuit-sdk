@@ -30,7 +30,7 @@ is a CIRC micropayment over [x402](./x402.md).
 
 ## Install
 
-While the SDK is in private development, install from the workspace. Once published:
+Install the meta-package for everything, or only the packages you need:
 
 ```bash
 npm install @circuit/sdk          # everything, one import

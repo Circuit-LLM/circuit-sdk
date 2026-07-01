@@ -1,9 +1,9 @@
 # Architecture
 
-How the SDK is built — the monorepo, the dependency graph, the zero-build dev flow, and how it
-compiles for publishing. For the *design rationale* (why these packages, the custody model, the
-roadmap), see **[SDK.md](../SDK.md)**.
+How the SDK is built and why it is shaped the way it is: the design principles, the monorepo layout,
+the dependency graph, the zero-build development flow, and how it compiles for publishing.
 
+- [Design principles](#design-principles)
 - [Monorepo layout](#monorepo-layout)
 - [Dependency graph](#dependency-graph)
 - [Zero-build dev, compiled publishing](#zero-build-dev-compiled-publishing)
@@ -11,6 +11,30 @@ roadmap), see **[SDK.md](../SDK.md)**.
 - [Testing](#testing)
 - [Two identity schemes](#two-identity-schemes)
 - [Conventions](#conventions)
+
+---
+
+## Design principles
+
+A few decisions shape everything else:
+
+- **x402 is the spine.** Every paid capability settles the same way: a `402 Payment Required` answered
+  with an on-chain CIRC micropayment, then a retry. There is one payment path and no API keys, and
+  everything that costs money depends on `@circuit/x402`.
+- **Everything depends on a tiny core.** `@circuit/core` (HTTP, config, ed25519 identity, owner-auth,
+  shared types) has zero runtime dependencies, and so do `@circuit/x402` and `@circuit/bundle`. Only
+  `@circuit/wallet` (Solana) and the opt-in `@circuit/vault` (Anchor) pull anything heavy, so a consumer
+  who only wants inference and data installs neither.
+- **Dependency injection over singletons.** No global config, no hardcoded paths. Every effectful
+  boundary, fetch, RPC, filesystem, clock, and wallet, is injectable. That is what lets the whole suite
+  run offline in tests and lets the library embed anywhere.
+- **Custody is one interface, four backends.** An agent sends an intent; where the signing key lives,
+  paper, self-custody, off-box signer, or on-chain vault, is a swap of the backend, not a rewrite of the
+  strategy. The same agent code runs from a paper bot on a laptop to a non-custodial vault agent on
+  borrowed hardware.
+- **Extracted from production, not reinvented.** The consume clients, the x402 flow, the custody
+  contract, and the mesh protocol are taken from the systems Circuit already runs, so the SDK is faithful
+  to what the network actually speaks.
 
 ---
 
@@ -33,8 +57,7 @@ circuit-sdk/
   apps/
     cli/         the `circuit` terminal console — built on the SDK (npm run cli)
   circuit-py/    Python consume client (inference + data + x402)         ← stdlib only
-  SDK.md         the design spec
-  docs/          this documentation
+  docs/          the documentation set (this file + guides + API reference)
 ```
 
 npm workspaces (`packages/*` + `apps/*`). `circuit-py` sits outside the workspace (it's Python).
@@ -158,5 +181,5 @@ repos, pinned by golden vectors. See [canonical-serialization.md](./canonical-se
   effectful boundary (fetch, RPC, fs, clock, wallet) is injectable, which is what makes the suite
   offline-testable.
 - **Faithful extraction** — the consume clients, the x402 flow, the custody contract, and the mesh
-  protocol are ported from the live ecosystem (`circuit-cli`, `circuit-agent-cloud`, `circuit-data-api`,
-  `circuit-dllm`, `circuit-node-client`), not reinvented.
+  protocol are taken from the systems Circuit runs in production, not reinvented, so the SDK speaks exactly
+  what the network already speaks.

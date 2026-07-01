@@ -110,7 +110,7 @@ Agents run **paper** until you create them with `--live`. A live agent's trades 
 
 ### Non-custodial vault (owner-controlled, on-chain)
 
-For custody where **Circuit holds no keys at all**, drive the on-chain [Agent Vault](https://github.com/Circuit-LLM/circuit-agent-vault) (live on devnet; mainnet audit-gated): the agent's delegate key can only *trade*, and you — the owner — are the sole withdraw authority, enforced on-chain.
+For custody where **Circuit holds no keys at all**, drive the on-chain **Agent Vault** (live on devnet; mainnet audit-gated): the agent's delegate key can only *trade*, and you — the owner — are the sole withdraw authority, enforced on-chain.
 
 ```bash
 circuit agent vault create <name>             # open a vault (you = owner / sole withdraw authority)
@@ -138,9 +138,9 @@ circuit agent host --off             # drain + stop
 # also: --node-id <id>, --max-memory <mb> (per-agent cap)
 ```
 
-**How it runs.** The runtime that hosts agents is the [circuit-node-client](https://github.com/Circuit-LLM/circuit-node-client) (it bundles + supervises the agent-host). So `circuit agent host` drives a locally-running node-client over its localhost API — the same enable/disable/status as the node-client dashboard's **Cloud** tab — and `--status` reports `via node-client`. Install one with `curl -fsSL https://circuitllm.xyz/join | bash`; point at a non-default port with `CIRCUIT_NODE_API=http://localhost:<port>`.
+**How it runs.** The runtime that hosts agents is the **Circuit node-client** (it bundles + supervises the agent-host). So `circuit agent host` drives a locally-running node-client over its localhost API — the same enable/disable/status as the node-client dashboard's **Cloud** tab — and `--status` reports `via node-client`. Install one with `curl -fsSL https://circuitllm.xyz/join | bash`; point at a non-default port with `CIRCUIT_NODE_API=http://localhost:<port>`.
 
-If no node-client is running, the CLI falls back to spawning the host from a local `circuit-agent-cloud` checkout (operator/dev) — set `CIRCUIT_AGENT_CLOUD_DIR=<path>`. Point at a control plane with `CIRCUIT_CONTROL_PLANE=<url>`. See the [agent-cloud spec](agent-cloud-spec.md).
+If no node-client is running, the CLI falls back to spawning the host from a local `circuit-agent-cloud` checkout (operator/dev) — set `CIRCUIT_AGENT_CLOUD_DIR=<path>`. Point at a control plane with `CIRCUIT_CONTROL_PLANE=<url>`.
 
 ---
 

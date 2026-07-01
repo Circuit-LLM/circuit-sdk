@@ -58,7 +58,7 @@ Nine modules, all live. The interactive menu and the command verbs are generated
 
 ### Contributing CPU (`agent host`)
 
-The runtime that hosts agents is the [circuit-node-client](https://github.com/Circuit-LLM/circuit-node-client) — it bundles and supervises the agent-host. So `circuit agent host` **drives a locally-running node-client** over its localhost API (the same Connect/disconnect the node-client dashboard's Cloud tab uses); `--status` then reports `via node-client`. Install one with `curl -fsSL https://circuitllm.xyz/join | bash`. If no node-client is running, the CLI falls back to a local `circuit-agent-cloud` checkout (`CIRCUIT_AGENT_CLOUD_DIR`) for operators. Full reference: [contribute capacity](../apps/cli/docs/commands.md#contribute-capacity-operator).
+The runtime that hosts agents is the **Circuit node-client** — it bundles and supervises the agent-host. So `circuit agent host` **drives a locally-running node-client** over its localhost API (the same Connect/disconnect the node-client dashboard's Cloud tab uses); `--status` then reports `via node-client`. Install one with `curl -fsSL https://circuitllm.xyz/join | bash`. If no node-client is running, the CLI falls back to a local `circuit-agent-cloud` checkout (`CIRCUIT_AGENT_CLOUD_DIR`) for operators. Full reference: [contribute capacity](../apps/cli/docs/commands.md#contribute-capacity-operator).
 
 ## Chat is x402, made visible
 

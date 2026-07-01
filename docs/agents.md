@@ -118,8 +118,8 @@ invent a trade:
   small funding bound the impact.
 - **Opaque strategies** — Verified Intents covers anything the signer can re-check: a deterministic rule,
   or a rule over a signed-AI verdict (which is most agents). A true black box the signer *can't* re-run
-  uses the hardware path instead — **[Sealed Agents](https://github.com/Circuit-LLM/circuit-agent-cloud/blob/main/docs/SEALED_AGENTS.md)**,
-  where a TEE attests the whole agent and works for any strategy.
+  uses the hardware path instead, **Sealed Agents**, where a TEE attests the whole agent and works for
+  any strategy.
 
 > Verified Intents is opt-in per agent (`requireVerifiedIntent`). Until you commit a rule the signer
 > enforces policy caps only, so a host could pick among *in-policy* trades — committing a rule is the
@@ -229,8 +229,8 @@ Programmatically: `scaffold(name)` returns a path→content map; `writeScaffold(
 ## Hosting
 
 `@circuit/agent` is what you *write the agent with*. Deploying it to the mesh —
-`create`/`start`/`stop`, placement, the operator's node-host — lives in
-[circuit-cli](https://github.com/Circuit-LLM/circuit-cli) (`circuit agent …`) and
-[circuit-agent-cloud](https://github.com/Circuit-LLM/circuit-agent-cloud). The runtime's job is to make
-your agent *speak the contract* those expect; the cloud schedules it, opens the custody session, and
+`create`/`start`/`stop`, placement, the operator's node-host — lives in the `circuit` CLI
+([apps/cli](../apps/cli/README.md), the `circuit agent …` commands) and the Circuit agent cloud. The
+runtime's job is to make your agent *speak the contract* those expect; the cloud schedules it, opens the
+custody session, and
 forwards your heartbeats.

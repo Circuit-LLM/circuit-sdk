@@ -10,8 +10,7 @@ produces *exactly that trade*. The host fully controls the agent process and sti
 signed that your rule + the real data don't justify.
 
 > This is the software path. The hardware path — a TEE that attests the whole agent, for strategies the
-> signer *can't* re-check — is [SEALED_AGENTS.md](https://github.com/Circuit-LLM/circuit-agent-cloud/blob/main/docs/SEALED_AGENTS.md).
-> Full threat model + spec: [VERIFIED_INTENTS.md](https://github.com/Circuit-LLM/circuit-agent-cloud/blob/main/docs/VERIFIED_INTENTS.md).
+> signer *can't* re-check — is **Sealed Agents**.
 >
 > This gap only exists when the **host is untrusted** (the mesh). Running an agent **self-custody on your
 > own box** (`LocalKeypairCustody`) or through the **non-custodial vault** removes the hostile-host premise
@@ -43,7 +42,7 @@ signer rejects it — `decision-unjustified`, `evidence-invalid`, `input-mismatc
 |---|---|---|
 | **T1 — deterministic rule** | `buy if price < X and bounce > Y` over signed/zkTLS inputs | **fully prevented** — the signer re-runs the rule; the host can't forge |
 | **T2 — signed AI** | decision = a **signed inference verdict** from Circuit's DLLM over signed inputs | **prevented**, *modulo trusting the mesh's signature* — the host can't fake the verdict |
-| **T3 — opaque** | a black box the signer can't re-run or get signed | **not prevented** by Verified Intents — use a [TEE](https://github.com/Circuit-LLM/circuit-agent-cloud/blob/main/docs/SEALED_AGENTS.md), or fall back to caps + deterrence |
+| **T3 — opaque** | a black box the signer can't re-run or get signed | **not prevented** by Verified Intents — use a **TEE (Sealed Agents)**, or fall back to caps + deterrence |
 
 Always true (verified or not): **no drain** (off-box `buy`/`sell`-only) and **at-most-one** (the epoch
 fence). Verified Intents add **no forgery** for T1/T2. Honest residuals: a host can still *withhold* a
@@ -113,8 +112,8 @@ const { receipt } = await inf.chatVerified(
 ```
 
 **zkTLS proof** — third-party data (an exchange API) proven authentic without trusting the host. Slower;
-use it only for feeds Circuit doesn't serve. See the [spec §3](https://github.com/Circuit-LLM/circuit-agent-cloud/blob/main/docs/VERIFIED_INTENTS.md)
-for TLSNotary vs Reclaim and the mandatory freshness binding.
+use it only for feeds Circuit doesn't serve. The evidence carries a TLSNotary or Reclaim proof with a
+mandatory freshness binding.
 
 ---
 
@@ -182,7 +181,5 @@ that agent must pass the gate.
 
 ## See also
 
-- [agents.md](agents.md) — the agent runtime + off-box custody (what a host can and can't do)
-- [`@circuit/attest`](packages.md) — the sign/verify/rule/gate primitives (the keystone)
-- [VERIFIED_INTENTS.md](https://github.com/Circuit-LLM/circuit-agent-cloud/blob/main/docs/VERIFIED_INTENTS.md) — full threat model, zkTLS deep-dive, milestones
-- [SEALED_AGENTS.md](https://github.com/Circuit-LLM/circuit-agent-cloud/blob/main/docs/SEALED_AGENTS.md) — the TEE path for opaque strategies
+- [agents.md](agents.md) — the agent runtime + custody (what a host can and can't do)
+- [`@circuit/attest`](packages.md#circuitattest) — the sign/verify/rule/gate primitives (the keystone)

@@ -26,4 +26,4 @@ python3 -m unittest discover -s tests   # run from this directory
 ```
 
 **Scope:** `Inference` (chat, list_models) + `Data` (typed endpoints) + the `X402Client` spine.
-Streaming, a built-in Solana wallet, and node/agent surfaces are TypeScript-only for now.
+Streaming, a built-in Solana wallet, and the node/agent surfaces are currently TypeScript-only.
