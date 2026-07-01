@@ -285,4 +285,4 @@ Part of the Circuit ecosystem. The `circuit` terminal CLI now ships **in this re
 
 ## License
 
-© Circuit LLM. All rights reserved during private development.
+MIT © Circuit LLM — see [LICENSE](LICENSE).
