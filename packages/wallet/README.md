@@ -24,4 +24,6 @@ await wallet.sendCirc(recipient, 1_000_000n);                 // (to, amountRaw)
 await wallet.swap(inputMint, outputMint, amount);            // (inMint, outMint, amount) via Jupiter
 ```
 
+> Swaps use Jupiter's free endpoint, which rate-limits hard (`429`). For real usage, pass a Jupiter API key — `makeWallet({ jupiterApiKey })` or the `JUPITER_API_KEY` env var — to use the keyed host.
+
 Implements `@circuit/x402`'s `PaymentWallet`, so it drops straight into `Inference` / `Data`. Multi-RPC failover is built in; an underfunded send surfaces as a typed **`InsufficientFundsError`** (which token, and the shortfall) instead of an opaque chain error, and the wallet warns once if it's on the rate-limited default public RPC — pass `rpcUrl` (or set `CIRCUIT_RPC_URL`) to override. Also exports `generateKeypair`, `loadKeypairFromEnv`, `isValidAddress`, and `walletTradeExecutor` (self-custody trading for agents).

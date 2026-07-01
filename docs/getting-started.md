@@ -105,6 +105,7 @@ const wallet = makeWallet({ rpcUrl: 'https://your-rpc-provider' });
 | `CIRCUIT_RPC_URL` | `configFromEnv()` | Solana RPC for payments + on-chain reads |
 | `CIRCUIT_INFERENCE_URL` | `configFromEnv()` | override the inference gateway |
 | `CIRCUIT_DATA_URL` | `configFromEnv()` | override the data API |
+| `JUPITER_API_KEY` | `makeWallet()` | lifts the swap rate limit (the free Jupiter endpoint throttles hard) |
 
 `CIRCUIT_WALLET` is picked up on its own. The rest flow through `configFromEnv()` — build a config once
 and pass it everywhere (anything unset falls back to the live defaults):
@@ -216,6 +217,7 @@ const ai = new Inference({ internalKey: process.env.CIRCUIT_INTERNAL_KEY });   /
 | `SpendCapError` | A quote exceeded `maxSpendRaw` | Raise the cap if the price is legitimate; otherwise it just protected you |
 | `PaymentRequiredError` after a payment | The transfer didn't confirm (RPC lag, or no SOL for fees) | Keep a little SOL for fees; use a reliable RPC |
 | `InsufficientFundsError` | Wallet is short on CIRC (or SOL for fees) — the error names which token and the shortfall | Fund it: CIRC via [Pump.fun](https://pump.fun/coin/8fQgfsRnRkKSeNUhevT7wp8mhNvMSJdLn1fJi4oVpump), plus a little SOL for fees |
+| `Jupiter quote 429` / `Jupiter swap 429` | The free Jupiter endpoint is rate-limiting your IP | Set `JUPITER_API_KEY` (or `makeWallet({ jupiterApiKey })`) to use the keyed host |
 | `chat` returns empty `content` | Gateway/model hiccup | Retry; run `circuit status doctor` (CLI) to check the mesh |
 
 ---

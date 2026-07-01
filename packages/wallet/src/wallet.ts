@@ -23,7 +23,13 @@ import { loadKeypairFromEnv } from './keypair.ts';
 import { InsufficientFundsError } from './errors.ts';
 import { warnIfDefaultPublicRpc } from './rpc-warning.ts';
 
-const JUP = 'https://lite-api.jup.ag/swap/v1';
+// Jupiter swap endpoints. The free `lite-api` host is aggressively rate-limited (429 under any load); with
+// a Jupiter API key the wallet uses the keyed host and sends `x-api-key`, lifting the limit.
+const JUP_LITE = 'https://lite-api.jup.ag/swap/v1';
+const JUP_PRO = 'https://api.jup.ag/swap/v1';
+
+/** The fetch shape the wallet uses — injectable for tests, defaults to the global `fetch`. */
+export type FetchLike = (input: string | URL, init?: RequestInit) => Promise<Response>;
 
 // Public RPCs tried (in order) when the primary hits its rate limit / credit cap or stalls. Ported from
 // circuit-cli. Re-broadcasting a signed tx is idempotent (fixed signature), so failover is safe on sends
@@ -52,6 +58,12 @@ export interface WalletOptions {
   /** Inject a list of connections to fail over across (tests / advanced); else [primary, ...fallbacks]. */
   connections?: Connection[];
   rpcUrl?: string;
+  /** Jupiter API key for swaps — lifts the free tier's rate limit. Falls back to `JUPITER_API_KEY`. */
+  jupiterApiKey?: string;
+  /** Override the Jupiter swap base URL (else the keyed host when a key is set, else the free `lite-api`). */
+  jupiterBaseUrl?: string;
+  /** Inject a `fetch` implementation (tests / custom transport); else the global `fetch`. */
+  fetchImpl?: FetchLike;
 }
 
 export class Wallet implements PaymentWallet {
@@ -64,6 +76,9 @@ export class Wallet implements PaymentWallet {
   private readonly tokenProgram: PublicKey;
   private readonly decimals: number;
   private readonly pubkey: PublicKey | null;
+  private readonly jupiterBase: string;
+  private readonly jupiterKey: string | null;
+  private readonly fetchImpl: FetchLike;
 
   constructor(opts: WalletOptions = {}) {
     const cfg = opts.config ?? DEFAULT_CONFIG;
@@ -86,6 +101,9 @@ export class Wallet implements PaymentWallet {
     this.circMint = new PublicKey(cfg.circMint);
     this.tokenProgram = new PublicKey(cfg.circTokenProgram);
     this.decimals = cfg.circDecimals;
+    this.jupiterKey = opts.jupiterApiKey ?? process.env.JUPITER_API_KEY ?? null;
+    this.jupiterBase = (opts.jupiterBaseUrl ?? (this.jupiterKey ? JUP_PRO : JUP_LITE)).replace(/\/$/, '');
+    this.fetchImpl = opts.fetchImpl ?? ((input, init) => fetch(input, init));
     warnIfDefaultPublicRpc(opts); // heads-up (once) if we're on the rate-limited public RPC
   }
 
@@ -144,10 +162,15 @@ export class Wallet implements PaymentWallet {
     amount: bigint | number,
     slippageBps = 100,
   ): Promise<unknown> {
-    const u = `${JUP}/quote?inputMint=${inputMint}&outputMint=${outputMint}&amount=${amount}&slippageBps=${slippageBps}&restrictIntermediateTokens=true`;
-    const resp = await fetch(u, { signal: AbortSignal.timeout(12_000) });
+    const u = `${this.jupiterBase}/quote?inputMint=${inputMint}&outputMint=${outputMint}&amount=${amount}&slippageBps=${slippageBps}&restrictIntermediateTokens=true`;
+    const resp = await this.fetchImpl(u, { headers: this.jupHeaders(), signal: AbortSignal.timeout(12_000) });
     if (!resp.ok) throw new Error(`Jupiter quote ${resp.status}`);
     return resp.json();
+  }
+
+  /** Jupiter request headers — adds `x-api-key` when a key is configured. */
+  private jupHeaders(extra?: Record<string, string>): Record<string, string> {
+    return { ...(this.jupiterKey ? { 'x-api-key': this.jupiterKey } : {}), ...extra };
   }
 
   /** Execute a swap via Jupiter (sign + send the returned versioned tx). */
@@ -159,9 +182,9 @@ export class Wallet implements PaymentWallet {
   ): Promise<{ sig: string; quote: unknown }> {
     const kp = this.requireKeypair();
     const quote = await this.swapQuote(inputMint, outputMint, amount, slippageBps);
-    const swapResp = await fetch(`${JUP}/swap`, {
+    const swapResp = await this.fetchImpl(`${this.jupiterBase}/swap`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: this.jupHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({
         quoteResponse: quote,
         userPublicKey: this.address,

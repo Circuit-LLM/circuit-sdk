@@ -139,7 +139,7 @@ SOL + CIRC (Token-2022) operations. `Wallet` implements `PaymentWallet`, so it p
 
 ```ts
 class Wallet implements PaymentWallet {
-  constructor(opts?: { keypair?; address?; config?; connection?; connections?; rpcUrl? });
+  constructor(opts?: { keypair?; address?; config?; connection?; connections?; rpcUrl?; jupiterApiKey?; jupiterBaseUrl?; fetchImpl? });
   solBalance(): Promise<number | null>;
   circBalance(): Promise<number>;
   sendCirc(to: string, amountRaw: bigint): Promise<string>;   // Token-2022 transfer
@@ -166,9 +166,10 @@ transactions are signed **once** against a fresh blockhash, so a retry on anothe
 same bytes and can never double-spend. On a failed send the wallet reads balances to distinguish a funds
 shortfall (→ `InsufficientFundsError`, with the shortfall) from any other error (re-thrown untouched) —
 without adding a round-trip to the happy path. On construction it warns **once** if it's on the default
-public RPC (which rate-limits); silence with `CIRCUIT_SUPPRESS_RPC_WARNING=1`. Depends on `@solana/web3.js`,
-`@solana/spl-token`, `bs58` — the only "heavy" package. Inject `connection`/`connections` for tests or a
-custom RPC.
+public RPC (which rate-limits); silence with `CIRCUIT_SUPPRESS_RPC_WARNING=1`. Swaps use Jupiter's free
+`lite-api` host, which throttles hard — pass `jupiterApiKey` (or set `JUPITER_API_KEY`) to use the keyed
+host, or `jupiterBaseUrl` to point elsewhere. Depends on `@solana/web3.js`, `@solana/spl-token`, `bs58` —
+the only "heavy" package. Inject `connection`/`connections` (or `fetchImpl`) for tests or a custom RPC.
 
 ---
 
