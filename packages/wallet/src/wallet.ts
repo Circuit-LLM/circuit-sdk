@@ -20,6 +20,8 @@ import {
 import { DEFAULT_CONFIG, type CircuitConfig } from '@circuit/core';
 import type { PaymentWallet } from '@circuit/x402';
 import { loadKeypairFromEnv } from './keypair.ts';
+import { InsufficientFundsError } from './errors.ts';
+import { warnIfDefaultPublicRpc } from './rpc-warning.ts';
 
 const JUP = 'https://lite-api.jup.ag/swap/v1';
 
@@ -29,6 +31,16 @@ const JUP = 'https://lite-api.jup.ag/swap/v1';
 const FALLBACK_RPCS = ['https://api.mainnet-beta.solana.com', 'https://rpc.ankr.com/solana'];
 const isRateLimited = (e: unknown): boolean =>
   /429|Too Many Requests|max usage|rate limit/i.test((e as { message?: string } | null)?.message ?? '');
+
+// One signature's base fee — below this, a send can't even pay for itself, so it's certainly a SOL problem.
+const BASE_FEE_LAMPORTS = 5000n;
+
+// A genuinely-missing token account (the wallet never held CIRC) reads as a real zero balance. Any OTHER
+// read failure is unknown and must NOT be reported as "insufficient" — that would mask the real error.
+const isMissingAccount = (e: unknown): boolean =>
+  /could not find account|account (does not exist|not found)|find account|no ata/i.test(
+    (e as { message?: string } | null)?.message ?? '',
+  );
 
 export interface WalletOptions {
   keypair?: Keypair | null;
@@ -74,6 +86,7 @@ export class Wallet implements PaymentWallet {
     this.circMint = new PublicKey(cfg.circMint);
     this.tokenProgram = new PublicKey(cfg.circTokenProgram);
     this.decimals = cfg.circDecimals;
+    warnIfDefaultPublicRpc(opts); // heads-up (once) if we're on the rate-limited public RPC
   }
 
   async solBalance(): Promise<number | null> {
@@ -104,19 +117,24 @@ export class Wallet implements PaymentWallet {
       createAssociatedTokenAccountIdempotentInstruction(kp.publicKey, toAta, to, this.circMint, this.tokenProgram),
       createTransferCheckedInstruction(fromAta, this.circMint, toAta, kp.publicKey, amountRaw, this.decimals, [], this.tokenProgram),
     );
-    return this.sendSigned(tx, kp);
+    try {
+      return await this.sendSigned(tx, kp);
+    } catch (err) {
+      throw (await this.classifyFundsError({ circRaw: amountRaw })) ?? err;
+    }
   }
 
   async sendSol(toAddress: string, sol: number): Promise<string> {
     const kp = this.requireKeypair();
+    const lamports = Math.round(sol * LAMPORTS_PER_SOL);
     const tx = new Transaction().add(
-      SystemProgram.transfer({
-        fromPubkey: kp.publicKey,
-        toPubkey: new PublicKey(toAddress),
-        lamports: Math.round(sol * LAMPORTS_PER_SOL),
-      }),
+      SystemProgram.transfer({ fromPubkey: kp.publicKey, toPubkey: new PublicKey(toAddress), lamports }),
     );
-    return this.sendSigned(tx, kp);
+    try {
+      return await this.sendSigned(tx, kp);
+    } catch (err) {
+      throw (await this.classifyFundsError({ solLamports: BigInt(lamports) + BASE_FEE_LAMPORTS })) ?? err;
+    }
   }
 
   /** Jupiter quote (read-only). amount = base units of inputMint. */
@@ -200,6 +218,47 @@ export class Wallet implements PaymentWallet {
       }
     }
     throw last;
+  }
+
+  // After a send fails, read balances to see whether it was actually a funds problem — and if so, say so
+  // clearly. Returns an InsufficientFundsError to throw, or null to let the original send error propagate.
+  // A probe that itself fails returns null, so a real error is never masked by a misattributed message.
+  private async classifyFundsError(need: {
+    circRaw?: bigint;
+    solLamports?: bigint;
+  }): Promise<InsufficientFundsError | null> {
+    try {
+      if (need.circRaw != null) {
+        const have = await this.circBalanceRawStrict();
+        if (have < need.circRaw) return new InsufficientFundsError('CIRC', have, need.circRaw);
+      }
+      const solNeed = need.solLamports ?? BASE_FEE_LAMPORTS;
+      const haveSol = await this.solLamports();
+      if (haveSol < solNeed) return new InsufficientFundsError('SOL', haveSol, solNeed);
+      return null;
+    } catch {
+      return null; // probe failed (e.g. RPC down) — don't guess; leave the original error to propagate
+    }
+  }
+
+  // Raw CIRC balance in base units. 0 for a genuinely-missing ATA; a real RPC failure is re-thrown.
+  private async circBalanceRawStrict(): Promise<bigint> {
+    if (!this.pubkey) return 0n;
+    const ata = getAssociatedTokenAddressSync(this.circMint, this.pubkey, false, this.tokenProgram);
+    try {
+      const r = await this.withRpc((c) => c.getTokenAccountBalance(ata, 'confirmed'));
+      return BigInt(r.value.amount);
+    } catch (e) {
+      if (isMissingAccount(e)) return 0n;
+      throw e;
+    }
+  }
+
+  // Raw SOL balance in lamports.
+  private async solLamports(): Promise<bigint> {
+    if (!this.pubkey) return 0n;
+    const pk = this.pubkey;
+    return BigInt(await this.withRpc((c) => c.getBalance(pk, 'confirmed')));
   }
 
   private requireKeypair(): Keypair {

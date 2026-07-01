@@ -150,6 +150,9 @@ class Wallet implements PaymentWallet {
 }
 makeWallet(opts?): Wallet;          // loads CIRCUIT_WALLET if no keypair given
 
+// thrown by sendCirc/sendSol when the wallet is underfunded (instead of an opaque chain error)
+class InsufficientFundsError extends Error { token: 'CIRC' | 'SOL'; haveRaw: bigint; needRaw: bigint; }
+
 // keypairs
 keypairFromSecret(input): Keypair;  loadKeypairFromEnv(env?): Keypair | null;
 generateKeypair(): Keypair;  secretKeyBase58(kp): string;  isValidAddress(s): boolean;
@@ -160,8 +163,12 @@ walletTradeExecutor(wallet): WalletExecutor;   // buy: SOL→token (sizeSol); se
 
 Reads and sends **fail over** across `[primary, …public fallbacks]` on a rate-limit or per-try timeout;
 transactions are signed **once** against a fresh blockhash, so a retry on another RPC re-broadcasts the
-same bytes and can never double-spend. Depends on `@solana/web3.js`, `@solana/spl-token`, `bs58` — the
-only "heavy" package. Inject `connection`/`connections` for tests or a custom RPC.
+same bytes and can never double-spend. On a failed send the wallet reads balances to distinguish a funds
+shortfall (→ `InsufficientFundsError`, with the shortfall) from any other error (re-thrown untouched) —
+without adding a round-trip to the happy path. On construction it warns **once** if it's on the default
+public RPC (which rate-limits); silence with `CIRCUIT_SUPPRESS_RPC_WARNING=1`. Depends on `@solana/web3.js`,
+`@solana/spl-token`, `bs58` — the only "heavy" package. Inject `connection`/`connections` for tests or a
+custom RPC.
 
 ---
 

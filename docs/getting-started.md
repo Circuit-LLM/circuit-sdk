@@ -212,10 +212,10 @@ const ai = new Inference({ internalKey: process.env.CIRCUIT_INTERNAL_KEY });   /
 | Symptom | Likely cause | Fix |
 |---------|--------------|-----|
 | `No wallet loaded — pass a keypair or set CIRCUIT_WALLET` | No key available | Set `CIRCUIT_WALLET`, or pass `makeWallet({ keypair })` |
-| Calls hang, time out, or fail under load | The default public RPC is rate-limiting | Set your own RPC — see [Configuration](#configuration-endpoints--rpc) |
+| Calls hang, time out, or fail under load (+ a startup warning about the public RPC) | The default public RPC is rate-limiting — the SDK warns you when you're on it | Set your own RPC — see [Configuration](#configuration-endpoints--rpc) |
 | `SpendCapError` | A quote exceeded `maxSpendRaw` | Raise the cap if the price is legitimate; otherwise it just protected you |
 | `PaymentRequiredError` after a payment | The transfer didn't confirm (RPC lag, or no SOL for fees) | Keep a little SOL for fees; use a reliable RPC |
-| Transfer fails — insufficient funds | Wallet has no CIRC (or no SOL for fees) | Fund it: CIRC via [Pump.fun](https://pump.fun/coin/8fQgfsRnRkKSeNUhevT7wp8mhNvMSJdLn1fJi4oVpump), plus a little SOL for fees |
+| `InsufficientFundsError` | Wallet is short on CIRC (or SOL for fees) — the error names which token and the shortfall | Fund it: CIRC via [Pump.fun](https://pump.fun/coin/8fQgfsRnRkKSeNUhevT7wp8mhNvMSJdLn1fJi4oVpump), plus a little SOL for fees |
 | `chat` returns empty `content` | Gateway/model hiccup | Retry; run `circuit status doctor` (CLI) to check the mesh |
 
 ---
