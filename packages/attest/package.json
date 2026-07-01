@@ -13,7 +13,9 @@
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "test": "node --experimental-strip-types --conditions=development --test test/*.test.ts",
     "typecheck": "tsc -p tsconfig.json",
@@ -22,5 +24,20 @@
   },
   "dependencies": {
     "@circuit/core": "0.2.1"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Circuit-LLM/circuit-sdk.git",
+    "directory": "packages/attest"
+  },
+  "homepage": "https://github.com/Circuit-LLM/circuit-sdk/tree/main/packages/attest#readme",
+  "bugs": {
+    "url": "https://github.com/Circuit-LLM/circuit-sdk/issues"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }

@@ -21,5 +21,20 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist"
-  ]
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Circuit-LLM/circuit-sdk.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/Circuit-LLM/circuit-sdk/tree/main/packages/core#readme",
+  "bugs": {
+    "url": "https://github.com/Circuit-LLM/circuit-sdk/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  }
 }

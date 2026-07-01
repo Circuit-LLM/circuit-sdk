@@ -28,6 +28,21 @@
     "dist"
   ],
   "bin": {
-    "circuit-agent": "./dist/circuit-agent.js"
+    "circuit-agent": "dist/circuit-agent.js"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Circuit-LLM/circuit-sdk.git",
+    "directory": "packages/agent"
+  },
+  "homepage": "https://github.com/Circuit-LLM/circuit-sdk/tree/main/packages/agent#readme",
+  "bugs": {
+    "url": "https://github.com/Circuit-LLM/circuit-sdk/issues"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }
