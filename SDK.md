@@ -1,6 +1,6 @@
 # Circuit SDK — Specification
 
-**Status:** IMPLEMENTED / v0. 12 `@circuit/*` packages + the `circuit` CLI (in `apps/cli`, consuming the SDK) + a Python consume client; 161 TS tests green, typecheck + dist build clean. This spec describes the shipped code and stays the contract we build against.
+**Status:** IMPLEMENTED / v0. 12 `@circuit/*` packages + the `circuit` CLI (in `apps/cli`, consuming the SDK) + a Python consume client; 164 TS tests green, typecheck + dist build clean. This spec describes the shipped code and stays the contract we build against.
 **Repo:** `Circuit-LLM/circuit-sdk` (private).
 **One line:** the developer toolkit for building on the Circuit ecosystem — **x402-paid decentralized
 inference, data, and wallet ops**, and **hosted autonomous agents with off-box (non-custodial)
@@ -348,11 +348,11 @@ copy becomes a re-export — tracked follow-on).
 
 | Phase | Ships | Why |
 |---|---|---|
-| **0 — spine** ✅ | `@circuit/x402` + `@circuit/core` | **DONE** — extracted, DI-cleaned, 41 tests green (see `packages/`) |
-| **1 — consume SDK** ✅ | `@circuit/inference` + `@circuit/data` + `@circuit/wallet` + `@circuit/sdk` meta | **DONE** — extracted onto the spine; 72 tests green (`circuit-py` deferred) |
+| **0 — spine** ✅ | `@circuit/x402` + `@circuit/core` | **DONE** — extracted, DI-cleaned, 44 tests green (see `packages/`) |
+| **1 — consume SDK** ✅ | `@circuit/inference` + `@circuit/data` + `@circuit/wallet` + `@circuit/sdk` meta | **DONE** — extracted onto the spine; 75 tests green (`circuit-py` deferred) |
 | **2 — agent runtime** ✅ | `@circuit/agent` (base class · four custody modes · scaffold) | **DONE** — `CircuitAgent` over custody-agnostic trading (paper · self-custody · off-box signer · vault); 104 tests green |
-| **3 — contribute** ✅ | `@circuit/node` + `@circuit/onchain` | **DONE** — mesh control + node registry + StakePoint/CIRC reads; 127 tests green |
-| **4 — extended** ✅ | `@circuit/bundle` + `@circuit/vault` + `@circuit/onchain` mesh_registry reader | **DONE** — content-addressed signed bundles (cross-impl golden vector), the non-custodial vault client + `makeVaultExecutor`, and on-chain control-plane reads; **161 TS tests green total**, typecheck + dist build clean |
+| **3 — contribute** ✅ | `@circuit/node` + `@circuit/onchain` | **DONE** — mesh control + node registry + StakePoint/CIRC reads; 130 tests green |
+| **4 — extended** ✅ | `@circuit/bundle` + `@circuit/vault` + `@circuit/onchain` mesh_registry reader | **DONE** — content-addressed signed bundles (cross-impl golden vector), the non-custodial vault client + `makeVaultExecutor`, and on-chain control-plane reads; **164 TS tests green total**, typecheck + dist build clean |
 
 **MVP (end of Phase 1):** `npm i @circuit/sdk`, load a wallet, call `inference.chat()` and
 `data.tokenPrice()` with automatic CIRC payment — a working, documented quickstart.

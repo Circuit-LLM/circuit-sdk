@@ -118,7 +118,7 @@ npm run build      # each package: tsup src/index.ts → dist/index.js (ESM) + d
 ## Testing
 
 ```bash
-npm test            # 161 TS tests across all packages, zero-transpile (node:test + strip-types)
+npm test            # 164 TS tests across all packages, zero-transpile (node:test + strip-types)
 npm run typecheck   # tsc --noEmit on all 12 packages (strict + noUncheckedIndexedAccess)
 cd circuit-py && python3 -m unittest discover -s tests   # 12 Python tests
 ```
@@ -142,6 +142,10 @@ The SDK reproduces both ed25519 identities the ecosystem uses — they are **not
 
 Both match the live servers byte-for-byte (verified by round-trip tests against the real
 `control_server.py` signer/verifier). See [contributing-a-node.md](./contributing-a-node.md).
+
+Relatedly, the **canonical JSON** these signatures are computed over uses one serializer (`@circuit/core`
+`stableStringify` — sorted keys, drops `undefined` → valid JSON) that must stay byte-identical across
+repos, pinned by golden vectors. See [canonical-serialization.md](./canonical-serialization.md).
 
 ---
 

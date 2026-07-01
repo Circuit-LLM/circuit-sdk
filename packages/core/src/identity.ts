@@ -28,14 +28,27 @@ export function generateIdentity(): Identity {
   };
 }
 
-/** Deterministic JSON — keys sorted recursively — so signer and verifier agree. */
-export function stableStringify(obj: unknown): string {
-  if (typeof obj !== 'object' || obj === null) return JSON.stringify(obj);
-  if (Array.isArray(obj)) return '[' + obj.map(stableStringify).join(',') + ']';
-  const o = obj as Record<string, unknown>;
+/**
+ * The **one canonical JSON serializer** for ecosystem signatures — keys sorted recursively, `undefined`
+ * dropped (undefined-valued keys omitted; a primitive `undefined` → `null`) so the output is ALWAYS valid
+ * JSON and signer + verifier hash identical bytes. Used by `@circuit/attest`, `@circuit/node`, and
+ * owner-auth alike.
+ *
+ * Producers normalize to valid JSON before signing anyway (`verdict ?? null`, conditional fields — see the
+ * sweep in docs/canonical-serialization.md); dropping `undefined` here is the deterministic fallback, not
+ * a licence to sign `undefined`. Pinned by `packages/core/test/canonical-vectors.json`.
+ *
+ * ⚠ Cross-repo, some peers still KEEP `undefined` pending the convergence migration; they agree because
+ * every real payload is `undefined`-free. See docs/canonical-serialization.md.
+ */
+export function stableStringify(v: unknown): string {
+  if (v === null || typeof v !== 'object') return JSON.stringify(v ?? null);
+  if (Array.isArray(v)) return '[' + v.map(stableStringify).join(',') + ']';
+  const o = v as Record<string, unknown>;
   return (
     '{' +
     Object.keys(o)
+      .filter((k) => o[k] !== undefined)
       .sort()
       .map((k) => JSON.stringify(k) + ':' + stableStringify(o[k]))
       .join(',') +

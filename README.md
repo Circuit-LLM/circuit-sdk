@@ -17,7 +17,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178c6)](https://www.typescriptlang.org)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D22-brightgreen)](https://nodejs.org)
 [![Python](https://img.shields.io/badge/python-%3E%3D3.10-3776ab)](https://www.python.org)
-[![Tests](https://img.shields.io/badge/tests-173%20passing-success)](#testing)
+[![Tests](https://img.shields.io/badge/tests-176%20passing-success)](#testing)
 [![Status](https://img.shields.io/badge/status-beta-orange)](#status--roadmap)
 
 > **Beta software.** The Circuit SDK is under active development. Expect breaking changes between releases, incomplete features, and rough edges. Agents move real value (trades + x402 payments) — use small amounts until you're comfortable with how it behaves.
@@ -242,7 +242,7 @@ circuit-py/  Python consume client (inference + data + x402)
 
 ```bash
 npm install
-npm test            # 161 TS tests, zero-transpile
+npm test            # 164 TS tests, zero-transpile
 npm run typecheck   # tsc --noEmit, all 12 packages
 npm run build       # tsup → dist/*.js + .d.ts (publishing)
 cd circuit-py && python3 -m unittest discover -s tests   # 12 Python tests
@@ -254,7 +254,7 @@ Design + rationale in **[SDK.md](SDK.md)** and **[docs/architecture.md](docs/arc
 
 ## Status & roadmap
 
-**Beta.** All twelve TypeScript packages + the `circuit` CLI (in `apps/cli`) + the Python client are built, extracted faithfully from the live ecosystem, and covered by **173 tests** (161 TS + 12 Python), all typecheck-clean. The CLI lives in the monorepo and consumes `@circuit/*` directly, so the SDK is the single source for the shared logic (bundle codec, wallet, owner-auth). The full roadmap — spine → consume → agents → contributor → extended (bundles · vault · on-chain control-plane reads) — is complete.
+**Beta.** All twelve TypeScript packages + the `circuit` CLI (in `apps/cli`) + the Python client are built, extracted faithfully from the live ecosystem, and covered by **176 tests** (164 TS + 12 Python), all typecheck-clean. The CLI lives in the monorepo and consumes `@circuit/*` directly, so the SDK is the single source for the shared logic (bundle codec, wallet, owner-auth). The full roadmap — spine → consume → agents → contributor → extended (bundles · vault · on-chain control-plane reads) — is complete.
 
 Working today: paid inference + data, CIRC wallet ops, the `CircuitAgent` runtime over off-box custody (with a local mock), the mesh + registry clients, and on-chain stake reads. Next: streaming for `circuit-py`, a Solana `PaymentWallet` for Python, and the first public npm release (version bump + publish).
 

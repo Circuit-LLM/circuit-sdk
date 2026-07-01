@@ -9,6 +9,7 @@
 // (golden vector in test/owner-auth.test.ts). The base58/ed25519 helpers mirror @circuit/bundle's crypto;
 // consolidating both into one core crypto module is a tracked follow-on.
 import crypto from 'node:crypto';
+import { stableStringify } from './identity.ts'; // the one canonical serializer (drops undefined → valid JSON)
 
 const PKCS8_PREFIX = Buffer.from('302e020100300506032b657004220420', 'hex'); // Ed25519 PKCS8 framing
 const SPKI_PREFIX = Buffer.from('302a300506032b6570032100', 'hex');
@@ -69,18 +70,10 @@ function verifyRaw(pubkey: Uint8Array | Buffer, msg: Buffer, sig: Uint8Array | B
   return crypto.verify(null, msg, pub, Buffer.from(sig));
 }
 
-// Deterministic JSON (sorted keys, recursive) so client and server hash the SAME bytes for a body.
-// Internal (not exported) — core's public stableStringify lives in identity.ts; this copy is kept beside
-// ownerAuthMessage to guarantee the byte-identity contract can't drift if that one ever changes.
-function stableStringify(v: unknown): string {
-  if (v === null || typeof v !== 'object') return JSON.stringify(v ?? null);
-  if (Array.isArray(v)) return `[${v.map(stableStringify).join(',')}]`;
-  const obj = v as Record<string, unknown>;
-  const keys = Object.keys(obj).filter((k) => obj[k] !== undefined).sort();
-  return `{${keys.map((k) => `${JSON.stringify(k)}:${stableStringify(obj[k])}`).join(',')}}`;
-}
-
 // The exact bytes signed: method, path, a hash of the canonical body, the timestamp, and the nonce.
+// The body is hashed via the one canonical `stableStringify` (drops undefined → valid JSON). This is
+// byte-identical with circuit-agent-cloud's `owner-auth.js` (both drop undefined) — see
+// docs/canonical-serialization.md; pinned by test/owner-auth.test.ts + test/canonical-serialization.test.ts.
 export function ownerAuthMessage({ method, path, body, ts, nonce }: { method: string; path: string; body?: unknown; ts: number | string; nonce: string }): string {
   const bodyHash = sha256hex(stableStringify(body ?? {}));
   return `circuit-owner-auth\nv1\n${String(method).toUpperCase()}\n${path}\n${bodyHash}\n${ts}\n${nonce}`;
