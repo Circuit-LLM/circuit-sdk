@@ -29,10 +29,8 @@ export const circuitNode = {
   swarmFeed: (limit = 50) => tryBases([PUBLIC(), LOCAL()], `/api/swarm/feed-public?limit=${limit}`, { timeout: 6000 }),
   swarmHoldings: () => tryBases([PUBLIC(), LOCAL()], '/api/swarm/holdings', { timeout: 6000 }),
 
-  // Market/network data — local first (free on the VPS); public only as a probe
-  // (returns 402/404 off-host, where this data is intentionally paid).
+  // Node network/health probe — local first (the coordinator host), public as a fallback probe.
+  // Market data (trending / losers / scan / active) now comes FREE from the price-feed — see
+  // services/priceFeed.js — so those older paid/local-first routes were removed.
   network: () => tryBases([LOCAL(), PUBLIC()], '/api/network', { timeout: 6000 }),
-  trending: (limit = 8) => tryBases([LOCAL(), PUBLIC()], `/api/trending?limit=${limit}`, { timeout: 30000 }),
-  dexLosers: (window = '5m', limit = 30) =>
-    tryBases([LOCAL(), PUBLIC()], `/api/dex/losers?window=${window}&limit=${limit}`, { timeout: 8000 }),
 };
