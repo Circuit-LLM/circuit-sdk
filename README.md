@@ -51,6 +51,16 @@ It's layered, and **an agent composes the whole stack** — it *thinks* (inferen
 
 ## Quick start
 
+**Install** — into a Node project (make one first if you're starting from scratch):
+
+```bash
+mkdir my-agent && cd my-agent   # skip if you already have a project
+npm init -y                     # creates package.json — run npm inside a project, not a bare folder
+npm i @circuit-llm/sdk
+```
+
+> Always install into its own folder with a `package.json`. Running `npm i` loose in your home directory (or any folder without one) makes npm walk up the tree and attach to whatever stray project it finds — a common source of confusing install errors.
+
 **TypeScript** — the consume MVP, in five lines:
 
 ```ts
