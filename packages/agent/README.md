@@ -1,5 +1,7 @@
 # @circuit-llm/agent
 
+[![npm](https://img.shields.io/npm/v/@circuit-llm/agent?color=cb3837&label=npm)](https://www.npmjs.com/package/@circuit-llm/agent)
+
 > Write an autonomous on-chain agent (`CircuitAgent`) with **pluggable custody** — paper, self-custody, off-box signer, or the non-custodial on-chain vault. The same strategy runs in all four; the agent can only buy/sell, so funds can't leave.
 
 Part of the **[Circuit SDK](https://github.com/Circuit-LLM/circuit-sdk)**. [Agents guide →](https://github.com/Circuit-LLM/circuit-sdk/blob/main/docs/agents.md)

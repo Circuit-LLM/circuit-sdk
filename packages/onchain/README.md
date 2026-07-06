@@ -1,5 +1,7 @@
 # @circuit-llm/onchain
 
+[![npm](https://img.shields.io/npm/v/@circuit-llm/onchain?color=cb3837&label=npm)](https://www.npmjs.com/package/@circuit-llm/onchain)
+
 > Read Circuit's on-chain state over **pure JSON-RPC** — StakePoint stake verification, CIRC balances, and the mesh registry — with no `@solana/web3.js` dependency.
 
 Part of the **[Circuit SDK](https://github.com/Circuit-LLM/circuit-sdk)**. [Contribute a node →](https://github.com/Circuit-LLM/circuit-sdk/blob/main/docs/contributing-a-node.md)

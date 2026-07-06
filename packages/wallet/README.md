@@ -1,5 +1,7 @@
 # @circuit-llm/wallet
 
+[![npm](https://img.shields.io/npm/v/@circuit-llm/wallet?color=cb3837&label=npm)](https://www.npmjs.com/package/@circuit-llm/wallet)
+
 > A Solana wallet for the Circuit network: SOL + CIRC (Token-2022) balances, transfers, and Jupiter swaps — and the concrete `PaymentWallet` that powers x402.
 
 Part of the **[Circuit SDK](https://github.com/Circuit-LLM/circuit-sdk)**. [Packages →](https://github.com/Circuit-LLM/circuit-sdk/blob/main/docs/packages.md)

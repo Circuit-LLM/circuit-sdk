@@ -1,5 +1,7 @@
 # @circuit-llm/vault
 
+[![npm](https://img.shields.io/npm/v/@circuit-llm/vault?color=cb3837&label=npm)](https://www.npmjs.com/package/@circuit-llm/vault)
+
 > Drive the **non-custodial on-chain Agent Vault**: the agent's delegate key can only *trade*; you — the owner — are the sole withdraw authority, enforced on-chain. Includes a Jupiter route source and `makeVaultExecutor` for `@circuit-llm/agent`'s `VaultCustody`.
 
 Part of the **[Circuit SDK](https://github.com/Circuit-LLM/circuit-sdk)**. [Agents & custody →](https://github.com/Circuit-LLM/circuit-sdk/blob/main/docs/agents.md)

@@ -1,5 +1,7 @@
 # @circuit-llm/core
 
+[![npm](https://img.shields.io/npm/v/@circuit-llm/core?color=cb3837&label=npm)](https://www.npmjs.com/package/@circuit-llm/core)
+
 > The tiny, zero-dependency foundation every Circuit package builds on: HTTP client, injectable config, ed25519 identity, owner-auth request signing, canonical serialization, and shared types.
 
 Part of the **[Circuit SDK](https://github.com/Circuit-LLM/circuit-sdk)**. [Architecture →](https://github.com/Circuit-LLM/circuit-sdk/blob/main/docs/architecture.md)

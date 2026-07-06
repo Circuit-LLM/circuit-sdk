@@ -1,5 +1,7 @@
 # @circuit-llm/attest
 
+[![npm](https://img.shields.io/npm/v/@circuit-llm/attest?color=cb3837&label=npm)](https://www.npmjs.com/package/@circuit-llm/attest)
+
 > The **Verified Intents** core: sign and verify authenticated inputs (signed first-party data, inference receipts, zkTLS), a safe decision-rule DSL, and the signer-side gate that re-derives a trade and rejects forgeries.
 
 Part of the **[Circuit SDK](https://github.com/Circuit-LLM/circuit-sdk)**. [Verified Intents →](https://github.com/Circuit-LLM/circuit-sdk/blob/main/docs/verified-intents.md)

@@ -1,5 +1,7 @@
 # @circuit-llm/x402
 
+[![npm](https://img.shields.io/npm/v/@circuit-llm/x402?color=cb3837&label=npm)](https://www.npmjs.com/package/@circuit-llm/x402)
+
 > The payment spine of the Circuit network: pay any x402-gated endpoint in CIRC (client) and verify on-chain CIRC payments (server). **Zero runtime dependencies.**
 
 Part of the **[Circuit SDK](https://github.com/Circuit-LLM/circuit-sdk)** — every paid call in the ecosystem (inference, data) runs on this. [Full guide →](https://github.com/Circuit-LLM/circuit-sdk/blob/main/docs/x402.md)

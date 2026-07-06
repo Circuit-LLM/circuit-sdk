@@ -1,5 +1,7 @@
 # @circuit-llm/node
 
+[![npm](https://img.shields.io/npm/v/@circuit-llm/node?color=cb3837&label=npm)](https://www.npmjs.com/package/@circuit-llm/node)
+
 > Join and manage a Circuit mesh node from code: the inference-mesh control plane (register / ready / heartbeat) and the public node registry (announce / ping). The heavy GPU serving stays in the node image.
 
 Part of the **[Circuit SDK](https://github.com/Circuit-LLM/circuit-sdk)**. [Contribute a node →](https://github.com/Circuit-LLM/circuit-sdk/blob/main/docs/contributing-a-node.md)

@@ -14,6 +14,7 @@
 
 **The developer toolkit for the Circuit decentralized intelligence network. Call the decentralized 72B, buy on-chain data, move CIRC, and ship autonomous agents that run on borrowed hardware with off-box custody — all paid per call in CIRC via x402, with no API keys. One TypeScript monorepo, plus a Python client.**
 
+[![npm](https://img.shields.io/npm/v/@circuit-llm/sdk?color=cb3837&label=npm)](https://www.npmjs.com/package/@circuit-llm/sdk)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178c6)](https://www.typescriptlang.org)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D22-brightgreen)](https://nodejs.org)
 [![Python](https://img.shields.io/badge/python-%3E%3D3.10-3776ab)](https://www.python.org)

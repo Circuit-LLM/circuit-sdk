@@ -1,5 +1,7 @@
 # @circuit-llm/inference
 
+[![npm](https://img.shields.io/npm/v/@circuit-llm/inference?color=cb3837&label=npm)](https://www.npmjs.com/package/@circuit-llm/inference)
+
 > OpenAI-compatible client for Circuit's decentralized 72B, served across a mesh of independent GPUs and **paid per request in CIRC** over x402.
 
 Part of the **[Circuit SDK](https://github.com/Circuit-LLM/circuit-sdk)**. [Getting started →](https://github.com/Circuit-LLM/circuit-sdk/blob/main/docs/getting-started.md)

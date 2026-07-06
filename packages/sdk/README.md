@@ -1,5 +1,7 @@
 # @circuit-llm/sdk
 
+[![npm](https://img.shields.io/npm/v/@circuit-llm/sdk?color=cb3837&label=npm)](https://www.npmjs.com/package/@circuit-llm/sdk)
+
 > The batteries-included meta-package. One install, one import — re-exports the whole Circuit SDK: `core`, `x402`, `inference`, `data`, `wallet`, `agent`, `node`, `onchain`, and the `attest` primitives.
 
 The front door to the **[Circuit SDK](https://github.com/Circuit-LLM/circuit-sdk)**. [Getting started →](https://github.com/Circuit-LLM/circuit-sdk/blob/main/docs/getting-started.md)

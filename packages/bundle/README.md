@@ -1,5 +1,7 @@
 # @circuit-llm/bundle
 
+[![npm](https://img.shields.io/npm/v/@circuit-llm/bundle?color=cb3837&label=npm)](https://www.npmjs.com/package/@circuit-llm/bundle)
+
 > Build, sign, verify, and unpack **content-addressed (sha256) signed agent bundles** — the canonical codec shared by the Circuit agent cloud and the `circuit` CLI. **Zero runtime dependencies.**
 
 Part of the **[Circuit SDK](https://github.com/Circuit-LLM/circuit-sdk)**. [Packages →](https://github.com/Circuit-LLM/circuit-sdk/blob/main/docs/packages.md)

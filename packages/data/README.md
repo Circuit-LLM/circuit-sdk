@@ -1,5 +1,7 @@
 # @circuit-llm/data
 
+[![npm](https://img.shields.io/npm/v/@circuit-llm/data?color=cb3837&label=npm)](https://www.npmjs.com/package/@circuit-llm/data)
+
 > Typed client for the Circuit Data API — market and on-chain intelligence (prices, liquidity, holders, trending, security), **paid per call in CIRC** over x402.
 
 Part of the **[Circuit SDK](https://github.com/Circuit-LLM/circuit-sdk)**. [Packages →](https://github.com/Circuit-LLM/circuit-sdk/blob/main/docs/packages.md)
