@@ -1,0 +1,66 @@
+{
+  "name": "@circuit-llm/plugins",
+  "version": "0.2.1",
+  "description": "Drop-in adapters that expose the Circuit Data API (pay-per-call in CIRC via x402) to agent frameworks: an ElizaOS plugin and a Solana Agent Kit action set. One dependency turns any agent into a Circuit data consumer.",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": {
+      "development": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./eliza": {
+      "development": "./src/eliza.ts",
+      "types": "./dist/eliza.d.ts",
+      "default": "./dist/eliza.js"
+    },
+    "./agent-kit": {
+      "development": "./src/agent-kit.ts",
+      "types": "./dist/agent-kit.d.ts",
+      "default": "./dist/agent-kit.js"
+    }
+  },
+  "scripts": {
+    "test": "node --experimental-strip-types --conditions=development --test test/*.test.ts",
+    "typecheck": "tsc -p tsconfig.json",
+    "build": "tsup src/index.ts src/eliza.ts src/agent-kit.ts --format esm --dts --clean --out-dir dist",
+    "prepack": "tsup src/index.ts src/eliza.ts src/agent-kit.ts --format esm --dts --clean --out-dir dist"
+  },
+  "dependencies": {
+    "@circuit-llm/core": "0.2.1",
+    "@circuit-llm/data": "0.2.1",
+    "@circuit-llm/x402": "0.2.1"
+  },
+  "keywords": [
+    "solana",
+    "ai-agent",
+    "elizaos",
+    "eliza-plugin",
+    "solana-agent-kit",
+    "x402",
+    "defi",
+    "onchain-data",
+    "circuit"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Circuit-LLM/circuit-sdk.git",
+    "directory": "packages/plugins"
+  },
+  "homepage": "https://github.com/Circuit-LLM/circuit-sdk/tree/main/packages/plugins#readme",
+  "bugs": {
+    "url": "https://github.com/Circuit-LLM/circuit-sdk/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

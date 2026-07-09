@@ -137,6 +137,7 @@ One npm workspace of scoped packages (`@circuit-llm/sdk` re-exports them all), p
 | **`@circuit-llm/onchain`** | CIRC balance + StakePoint stake verification + `mesh_registry` control-plane reads, via pure JSON-RPC. **No web3.js.** | core |
 | **`@circuit-llm/bundle`** | Build, sign, verify & unpack content-addressed agent bundles — the canonical codec shared with the cloud + CLI; cross-platform packer + secret-file exclusion. **Zero deps.** | — |
 | **`@circuit-llm/vault`** | Drive the non-custodial on-chain Agent Vault; `makeVaultExecutor` plugs into `@circuit-llm/agent`. **Opt-in (Anchor).** | anchor |
+| **[`@circuit-llm/plugins`](packages/plugins#readme)** | Drop-in adapters that expose the Data API to other agent frameworks — an **ElizaOS plugin** and **Solana Agent Kit** actions. One import turns any agent into a Circuit data consumer (pay-per-call in CIRC). | core · data · x402 |
 | **`@circuit-llm/sdk`** | Batteries-included meta-package — re-exports the consume + agent + contributor packages (bundle/vault are direct imports). | all |
 | **`circuit-py`** | Python consume client — inference + data + x402. **Stdlib only.** | — |
 
