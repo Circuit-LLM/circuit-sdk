@@ -1,7 +1,7 @@
 {
   "name": "@circuit-llm/wallet",
-  "version": "0.2.1",
-  "description": "Circuit SDK wallet — SOL/CIRC balances, transfers, and Jupiter swaps. Implements @circuit-llm/x402's PaymentWallet.",
+  "version": "0.2.2",
+  "description": "Circuit SDK wallet \u2014 SOL/CIRC balances, transfers, and Jupiter swaps. Implements @circuit-llm/x402's PaymentWallet.",
   "license": "MIT",
   "type": "module",
   "exports": {
@@ -18,8 +18,8 @@
     "prepack": "tsup src/index.ts --format esm --dts --clean --out-dir dist"
   },
   "dependencies": {
-    "@circuit-llm/core": "0.2.1",
-    "@circuit-llm/x402": "0.2.1",
+    "@circuit-llm/core": "0.2.2",
+    "@circuit-llm/x402": "0.2.2",
     "@solana/web3.js": "^1.98.0",
     "@solana/spl-token": "^0.4.14",
     "bs58": "^6.0.0"

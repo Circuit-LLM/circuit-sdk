@@ -1,7 +1,7 @@
 {
   "name": "@circuit-llm/agent",
-  "version": "0.2.1",
-  "description": "Circuit SDK agent runtime — write an autonomous agent (CircuitAgent) with pluggable custody (paper · self-custody · off-box signer · non-custodial vault). Buy/sell only; on the mesh the key stays off-box, so funds can't leave.",
+  "version": "0.2.2",
+  "description": "Circuit SDK agent runtime \u2014 write an autonomous agent (CircuitAgent) with pluggable custody (paper \u00b7 self-custody \u00b7 off-box signer \u00b7 non-custodial vault). Buy/sell only; on the mesh the key stays off-box, so funds can't leave.",
   "license": "MIT",
   "type": "module",
   "exports": {
@@ -18,9 +18,9 @@
     "prepack": "tsup src/index.ts --format esm --dts --clean --out-dir dist && tsup bin/circuit-agent.ts --format esm --out-dir dist"
   },
   "dependencies": {
-    "@circuit-llm/inference": "0.2.1",
-    "@circuit-llm/data": "0.2.1",
-    "@circuit-llm/attest": "0.2.1"
+    "@circuit-llm/inference": "0.2.2",
+    "@circuit-llm/data": "0.2.2",
+    "@circuit-llm/attest": "0.2.2"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
