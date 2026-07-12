@@ -22,7 +22,7 @@ TIERS=(
   "core x402 bundle vault"     # zero internal deps
   "attest wallet node onchain" # need core / x402
   "inference data"             # need core / x402 / attest
-  "agent"                      # needs inference / data / attest
+  "agent plugins"              # agent: inference/data/attest · plugins: core/data/x402
   "sdk"                        # the meta-package — depends on all
 )
 

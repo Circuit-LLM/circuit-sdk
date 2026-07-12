@@ -22,6 +22,7 @@ test('eliza plugin shape', () => {
   assert.equal(p.name, 'circuit');
   assert.ok(Array.isArray(p.actions) && p.actions.length > 0);
   const a = p.actions[0];
+  assert.ok(a);
   assert.equal(typeof a.name, 'string');
   assert.equal(typeof a.handler, 'function');
   assert.equal(typeof a.validate, 'function');
