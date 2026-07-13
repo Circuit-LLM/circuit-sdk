@@ -1,6 +1,6 @@
 {
   "name": "@circuit-llm/attest",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Circuit SDK attestation \u2014 the verified-intent core: sign/verify authenticated inputs (signed first-party data, inference receipts, zkTLS), a safe decision-rule DSL, and the signer-side decision gate that re-derives a trade and rejects forgeries. Shared by the agent and the signer.",
   "license": "MIT",
   "type": "module",
@@ -23,7 +23,7 @@
     "prepack": "tsup src/index.ts --format esm --dts --clean --out-dir dist"
   },
   "dependencies": {
-    "@circuit-llm/core": "0.2.3"
+    "@circuit-llm/core": "0.2.4"
   },
   "publishConfig": {
     "access": "public"

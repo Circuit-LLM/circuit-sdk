@@ -1,6 +1,6 @@
 {
   "name": "@circuit-llm/sdk",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Circuit SDK \u2014 batteries-included meta-package re-exporting @circuit-llm/{core,x402,inference,models,data,wallet}.",
   "license": "MIT",
   "type": "module",
@@ -18,16 +18,16 @@
     "prepack": "tsup src/index.ts --format esm --dts --clean --out-dir dist"
   },
   "dependencies": {
-    "@circuit-llm/core": "0.2.3",
-    "@circuit-llm/x402": "0.2.3",
-    "@circuit-llm/inference": "0.2.3",
-    "@circuit-llm/models": "0.2.3",
-    "@circuit-llm/data": "0.2.3",
-    "@circuit-llm/wallet": "0.2.3",
-    "@circuit-llm/agent": "0.2.3",
-    "@circuit-llm/node": "0.2.3",
-    "@circuit-llm/onchain": "0.2.3",
-    "@circuit-llm/attest": "0.2.3"
+    "@circuit-llm/core": "0.2.4",
+    "@circuit-llm/x402": "0.2.4",
+    "@circuit-llm/inference": "0.2.4",
+    "@circuit-llm/models": "0.2.4",
+    "@circuit-llm/data": "0.2.4",
+    "@circuit-llm/wallet": "0.2.4",
+    "@circuit-llm/agent": "0.2.4",
+    "@circuit-llm/node": "0.2.4",
+    "@circuit-llm/onchain": "0.2.4",
+    "@circuit-llm/attest": "0.2.4"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
