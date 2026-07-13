@@ -151,6 +151,7 @@ No accounts, no keys, no invoices — the request paid for itself (~$0.03). Beca
 |---------|--------------|
 | `circuit` | Interactive console (splash + menu) |
 | `circuit chat [prompt]` | DLLM chat — REPL, one-shot, or piped; `--json --model --temp --system --max-tokens --models` |
+| `circuit models list \| balance \| buy \| key \| chat` | Buy credits + call hosted models (GPT/Claude/Grok…) via the OpenAI-compatible gateway |
 | `circuit wallet` | Balances, receive, send, swap (interactive) |
 | `circuit wallet import \| generate \| address \| balance [addr]` | Wallet setup & queries |
 | `circuit data trending \| dips \| token <mint>` | Market data + braille charts |
@@ -171,6 +172,7 @@ Full reference: **[docs/commands.md](docs/commands.md)**.
 | Module | What it does | Wallet | Status |
 |--------|--------------|:------:|--------|
 | `chat` | Stream the decentralized 72B, paid in CIRC | required | live |
+| `models` | Buy prepaid credits + call hosted models (OpenAI-compatible reseller) | for buy/key | live |
 | `wallet` | SOL + CIRC balances, send, swap | required | live |
 | `data` | Token price/liquidity, trending, dips, charts | — | live |
 | `swarm` | Autonomous agents — stats & live signals | — | live |

@@ -242,6 +242,7 @@ packages/
   x402/      the payment spine (402 → pay CIRC → retry · verify)   ← zero deps
   core/      http · config (DI) · ed25519 identity · types         ← zero deps
   inference/ │ data/ │ wallet/        the consume layer
+  models/    circuitllm.xyz/models gateway client (prepaid credits · OpenAI-compatible)
   agent/     CircuitAgent + off-box custody + scaffold (the agent runtime)
   node/      │ onchain/               the contributor layer
   bundle/    │ vault/                 agent bundles · non-custodial vault client (opt-in)
@@ -255,8 +256,8 @@ circuit-py/  Python consume client (inference + data + x402)
 
 ```bash
 npm install
-npm test            # 179 TS tests, zero-transpile
-npm run typecheck   # tsc --noEmit, all 12 packages
+npm test            # 196 TS tests, zero-transpile
+npm run typecheck   # tsc --noEmit, all 14 packages
 npm run build       # tsup → dist/*.js + .d.ts (publishing)
 cd circuit-py && python3 -m unittest discover -s tests   # 12 Python tests
 ```
@@ -267,7 +268,7 @@ Design principles, the dependency graph, and the build model are in **[docs/arch
 
 ## Status & roadmap
 
-**Beta.** All twelve TypeScript packages + the `circuit` CLI (in `apps/cli`) + the Python client are built, extracted faithfully from the live ecosystem, and covered by **191 tests** (179 TS + 12 Python), all typecheck-clean. The CLI lives in the monorepo and consumes `@circuit-llm/*` directly, so the SDK is the single source for the shared logic (bundle codec, wallet, owner-auth). The full roadmap — spine → consume → agents → contributor → extended (bundles · vault · on-chain control-plane reads) — is complete.
+**Beta.** All fourteen TypeScript packages + the `circuit` CLI (in `apps/cli`) + the Python client are built, extracted faithfully from the live ecosystem, and covered by **208 tests** (196 TS + 12 Python), all typecheck-clean. The CLI lives in the monorepo and consumes `@circuit-llm/*` directly, so the SDK is the single source for the shared logic (bundle codec, wallet, owner-auth). The full roadmap — spine → consume → agents → contributor → extended (bundles · vault · on-chain control-plane reads) — is complete.
 
 Working today: paid inference and data, CIRC wallet operations, the `CircuitAgent` runtime across the full custody spectrum (paper, self-custody, off-box signer, and the on-chain vault client), the mesh and registry clients, and on-chain stake reads. Planned: streaming and a native Solana `PaymentWallet` for the Python client.
 

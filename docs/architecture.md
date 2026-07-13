@@ -48,6 +48,7 @@ circuit-sdk/
     inference/   OpenAI-compatible DLLM client
     data/        typed Circuit Data API client
     wallet/      SOL/CIRC ops + Jupiter swaps + RPC failover    (+ @solana/web3.js)
+    models/      circuitllm.xyz/models gateway client (prepaid credits · OpenAI-compatible)
     agent/       CircuitAgent + off-box custody + scaffold + bin
     node/        mesh control plane + public registry clients
     onchain/     StakePoint stake + CIRC balance + mesh_registry reads (pure RPC)
@@ -141,8 +142,8 @@ npm run build      # each package: tsup src/index.ts → dist/index.js (ESM) + d
 ## Testing
 
 ```bash
-npm test            # 179 TS tests across all packages, zero-transpile (node:test + strip-types)
-npm run typecheck   # tsc --noEmit on all 12 packages (strict + noUncheckedIndexedAccess)
+npm test            # 196 TS tests across all packages, zero-transpile (node:test + strip-types)
+npm run typecheck   # tsc --noEmit on all 14 packages (strict + noUncheckedIndexedAccess)
 cd circuit-py && python3 -m unittest discover -s tests   # 12 Python tests
 ```
 

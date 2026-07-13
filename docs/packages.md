@@ -10,6 +10,7 @@ batteries-included **`@circuit-llm/sdk`** to get everything, or depend on exactl
 | [`@circuit-llm/inference`](#circuitinference) | OpenAI-compatible DLLM client |
 | [`@circuit-llm/data`](#circuitdata) | typed Circuit Data API client |
 | [`@circuit-llm/wallet`](#circuitwallet) | SOL/CIRC balances, transfers, swaps (multi-RPC failover) |
+| [`@circuit-llm/models`](#circuitmodels) | circuitllm.xyz/models gateway — prepaid credits + OpenAI-compatible chat |
 | [`@circuit-llm/agent`](#circuitagent) | the `CircuitAgent` runtime (off-box custody + verified intents) |
 | [`@circuit-llm/attest`](#circuitattest) | verified intents — sign/verify evidence, rule DSL, decision gate |
 | [`@circuit-llm/node`](#circuitnode) | join/manage a mesh node from code |
@@ -146,6 +147,8 @@ class Wallet implements PaymentWallet {
   sendSol(to: string, sol: number): Promise<string>;
   swapQuote(inMint, outMint, amount, slippageBps?): Promise<unknown>;
   swap(inMint, outMint, amount, slippageBps?): Promise<{ sig; quote }>;   // Jupiter
+  signMessage(message: string | Uint8Array): string;          // Ed25519 → base58 (wallet-signature auth)
+  signAndSendTransaction(base64Tx: string): Promise<string>;  // sign a server-built tx + broadcast (failover)
   readonly address: string | null; readonly readOnly: boolean;
 }
 makeWallet(opts?): Wallet;          // loads CIRCUIT_WALLET if no keypair given
@@ -170,6 +173,44 @@ public RPC (which rate-limits); silence with `CIRCUIT_SUPPRESS_RPC_WARNING=1`. S
 `lite-api` host, which throttles hard — pass `jupiterApiKey` (or set `JUPITER_API_KEY`) to use the keyed
 host, or `jupiterBaseUrl` to point elsewhere. Depends on `@solana/web3.js`, `@solana/spl-token`, `bs58` —
 the only "heavy" package. Inject `connection`/`connections` (or `fetchImpl`) for tests or a custom RPC.
+
+---
+
+## `@circuit-llm/models`
+
+Client for the **[circuitllm.xyz/models](https://circuitllm.xyz/models)** gateway — a pay-as-you-go,
+OpenAI-compatible reseller of OpenRouter, paid in Solana crypto against a prepaid USD ledger. Distinct from
+[`@circuit-llm/inference`](#circuitinference): that pays the DLLM mesh per call in CIRC via x402; this debits
+a prepaid balance behind a `sk-circuit-` Bearer key.
+
+```ts
+class Models {
+  constructor(opts?: { wallet?: Wallet; apiKey?; model?; baseUrl?; fetchImpl? });  // apiKey ← CIRCUIT_MODELS_KEY
+  // catalog (public)
+  catalog(): Promise<ModelInfo[]>;            // full catalog, Circuit markup applied
+  listModelIds(): Promise<string[]>;          // OpenAI /v1/models passthrough
+  stats(): Promise<Record<string, unknown>>;
+  // account + key (wallet-signature gated)
+  account(address?): Promise<AccountInfo>;    // balance + key status
+  issueKey(): Promise<KeyResult>;             // issue/rotate the sk-circuit- key (signed)
+  // buy credits (wallet)
+  quote(token, usd): Promise<PurchaseQuote>;
+  buy(token, usd, opts?): Promise<BuyResult>; // build → sign+send → poll-verify, one call
+  buildPurchase(token, usd); verifyPurchase(sig);            // the low-level steps
+  // chat (metered against balance)
+  chat(params): Promise<ChatResult>;
+  chatStream(params): AsyncGenerator<string, { content; usage }, void>;
+  get openaiBaseUrl(): string;                // hand to the OpenAI SDK
+}
+modelsAuthMessage(wallet, ts): string;        // canonical wallet-sig message
+class ModelsError extends Error { status: number; body: unknown; }
+```
+
+`token` is `'USDC' | 'SOL' | 'CIRC'`. `buy()` uses `@circuit-llm/wallet`'s `signAndSendTransaction` to sign
+the gateway-built transfer and `issueKey()` uses `signMessage` for the auth signature — so a `wallet` is
+required for those; chat needs only an `apiKey`. Chat is plain OpenAI-compatible, so you can also skip this
+package and point the official OpenAI SDK at `models.openaiBaseUrl` with your key. Non-2xx responses throw
+`ModelsError`. Depends on `@circuit-llm/core` + `@circuit-llm/wallet`.
 
 ---
 
