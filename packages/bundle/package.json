@@ -1,6 +1,6 @@
 {
   "name": "@circuit-llm/bundle",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Circuit SDK agent bundles \u2014 build, sign, verify, and unpack content-addressed (sha256) signed agent bundles. The canonical codec shared by the Circuit agent cloud and the circuit CLI.",
   "license": "MIT",
   "type": "module",

@@ -128,7 +128,8 @@ One npm workspace of scoped packages (`@circuit-llm/sdk` re-exports them all), p
 |---------|--------------|------------|
 | **`@circuit-llm/x402`** | The payment spine — pay any x402 endpoint in CIRC; verify payments server-side. **Zero deps.** | — |
 | **`@circuit-llm/core`** | http · injectable config · ed25519 identity · owner-auth (per-owner control-plane request signing) · shared types. **Zero deps.** | — |
-| **`@circuit-llm/inference`** | OpenAI-compatible client for the DLLM mesh (`chat`, `chatStream`, `listModels`). | core · x402 |
+| **`@circuit-llm/inference`** | OpenAI-compatible client for the DLLM mesh (`chat`, `chatStream`, `listModels`), paid per call in CIRC (x402). | core · x402 |
+| **`@circuit-llm/models`** | Client for the [circuitllm.xyz/models](https://circuitllm.xyz/models) gateway — buy prepaid credits (USDC/SOL/CIRC), mint a `sk-circuit-` key, call the metered OpenAI-compatible chat API. | core · wallet |
 | **`@circuit-llm/data`** | Typed client for 40+ Circuit Data API endpoints — full coverage (free + paid), with a generic `get()` escape hatch. | core · x402 |
 | **`@circuit-llm/wallet`** | SOL/CIRC balances, transfers, Jupiter swaps (multi-RPC failover); implements `PaymentWallet`; `walletTradeExecutor` drives self-custody agent trading. | core · x402 · solana |
 | **`@circuit-llm/agent`** | **The agent runtime** — `CircuitAgent` base class + four custody modes (paper · self-custody · off-box signer · non-custodial vault) + verified-intent mode + scaffold. | core · inference · data · attest |

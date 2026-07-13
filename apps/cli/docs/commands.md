@@ -32,6 +32,37 @@ cat file.txt | circuit chat "summarize this"
 
 Each turn prints a cost meter: `↯ <amount> CIRC · $<usd> · tx <sig>`.
 
+> `chat` talks to the **decentralized DLLM mesh**. To reach hosted third-party models (GPT, Claude, Grok, …)
+> through Circuit, use **`models`** below — a prepaid, OpenAI-compatible reseller.
+
+---
+
+## models
+
+Buy prepaid credits with crypto, mint an OpenAI-compatible `sk-circuit-` key, and call any hosted model
+through [circuitllm.xyz/models](https://circuitllm.xyz/models). Buying and minting are signed by your
+[wallet](configuration.md#wallet); chat is metered against your balance.
+
+```bash
+circuit models                       # interactive: balance, buy, key, browse, chat
+circuit models list --search grok    # browse the catalog (Circuit markup applied)
+circuit models balance [address]     # credits + API-key status
+circuit models buy 5 --token SOL     # top up $5 of credits (SOL | USDC | CIRC)
+circuit models key                   # issue/rotate the key → ~/.circuit/models-key.json (0600)
+circuit models chat "hi" -m openai/gpt-4o-mini
+```
+
+| Command | Notes |
+|---------|-------|
+| `list` | `--ids` (pipe-friendly), `-s, --search <q>` |
+| `balance [address]` | defaults to your wallet; pass an address for a read-only peek |
+| `buy [usd]` | `-t, --token <SOL\|USDC\|CIRC>` (default `SOL`); build → sign → verify in one step |
+| `key` | `--no-save` to print without writing the key file |
+| `chat [prompt...]` | `--json`, `-m/--model`, `-t/--temp`, `-s/--system`, `--max-tokens`; REPL when no prompt |
+
+The chat key is read from `CIRCUIT_MODELS_KEY` or `~/.circuit/models-key.json`. `--model` takes an
+OpenRouter id (default `openai/gpt-4o-mini`); run `circuit models list` to see what's available.
+
 ---
 
 ## wallet

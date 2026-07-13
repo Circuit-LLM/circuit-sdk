@@ -17,6 +17,8 @@ import {
   createTransferCheckedInstruction,
   createAssociatedTokenAccountIdempotentInstruction,
 } from '@solana/spl-token';
+import crypto from 'node:crypto';
+import bs58 from 'bs58';
 import { DEFAULT_CONFIG, type CircuitConfig } from '@circuit-llm/core';
 import type { PaymentWallet } from '@circuit-llm/x402';
 import { loadKeypairFromEnv } from './keypair.ts';
@@ -40,6 +42,10 @@ const isRateLimited = (e: unknown): boolean =>
 
 // One signature's base fee — below this, a send can't even pay for itself, so it's certainly a SOL problem.
 const BASE_FEE_LAMPORTS = 5000n;
+
+// Ed25519 PKCS8 DER framing — prefixes a raw 32-byte seed so node:crypto can load it as a private key
+// for detached message signing. Same prefix @circuit-llm/core's owner-auth uses; see docs/canonical-serialization.md.
+const ED25519_PKCS8_PREFIX = Buffer.from('302e020100300506032b657004220420', 'hex');
 
 // A genuinely-missing token account (the wallet never held CIRC) reads as a real zero balance. Any OTHER
 // read failure is unknown and must NOT be reported as "insufficient" — that would mask the real error.
@@ -203,6 +209,35 @@ export class Wallet implements PaymentWallet {
       return s;
     });
     return { sig, quote };
+  }
+
+  /** Sign an arbitrary message with the wallet key (Ed25519), returning a base58 signature — the shape
+   *  Circuit's wallet-signature auth expects (e.g. the models gateway's `/account/key`). Strings are
+   *  signed as their UTF-8 bytes. Throws in read-only mode. */
+  signMessage(message: string | Uint8Array): string {
+    const kp = this.requireKeypair();
+    const bytes = typeof message === 'string' ? new TextEncoder().encode(message) : message;
+    const priv = crypto.createPrivateKey({
+      key: Buffer.concat([ED25519_PKCS8_PREFIX, Buffer.from(kp.secretKey.slice(0, 32))]),
+      format: 'der',
+      type: 'pkcs8',
+    });
+    return bs58.encode(crypto.sign(null, Buffer.from(bytes), priv));
+  }
+
+  /** Sign a server-built, base64-serialized legacy transaction and broadcast it (with RPC failover).
+   *  The server sets the fee payer + a recent blockhash; we only add our signature, so a re-broadcast on
+   *  failover is idempotent (Solana dedups by the fixed signature). Returns the transaction signature. */
+  async signAndSendTransaction(base64Tx: string): Promise<string> {
+    const kp = this.requireKeypair();
+    const tx = Transaction.from(Buffer.from(base64Tx, 'base64'));
+    tx.sign(kp);
+    const raw = tx.serialize();
+    return this.withRpc(async (c) => {
+      const sig = await c.sendRawTransaction(raw, { maxRetries: 3 });
+      await c.confirmTransaction(sig, 'confirmed');
+      return sig;
+    });
   }
 
   // Sign a legacy Transaction ONCE against a fresh blockhash, then broadcast the fixed-signature bytes.

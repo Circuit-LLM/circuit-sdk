@@ -1,7 +1,7 @@
 {
-  "name": "@circuit-llm/x402",
+  "name": "@circuit-llm/models",
   "version": "0.2.3",
-  "description": "Circuit SDK payment spine \u2014 pay any x402 endpoint in CIRC (client) + verify on-chain CIRC payments (server). Zero runtime dependencies.",
+  "description": "Circuit SDK models — client for the circuitllm.xyz/models gateway: buy prepaid credits in USDC/SOL/CIRC, mint a Circuit API key, and call the metered OpenAI-compatible chat API.",
   "license": "MIT",
   "type": "module",
   "exports": {
@@ -17,6 +17,10 @@
     "build": "tsup src/index.ts --format esm --dts --clean --out-dir dist",
     "prepack": "tsup src/index.ts --format esm --dts --clean --out-dir dist"
   },
+  "dependencies": {
+    "@circuit-llm/core": "0.2.3",
+    "@circuit-llm/wallet": "0.2.3"
+  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "files": [
@@ -28,9 +32,9 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Circuit-LLM/circuit-sdk.git",
-    "directory": "packages/x402"
+    "directory": "packages/models"
   },
-  "homepage": "https://github.com/Circuit-LLM/circuit-sdk/tree/main/packages/x402#readme",
+  "homepage": "https://github.com/Circuit-LLM/circuit-sdk/tree/main/packages/models#readme",
   "bugs": {
     "url": "https://github.com/Circuit-LLM/circuit-sdk/issues"
   },
