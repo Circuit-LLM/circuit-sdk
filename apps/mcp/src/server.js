@@ -51,7 +51,11 @@ export function buildServer(opts = {}) {
 
   const capCirc = posNum(env.CIRCUIT_MCP_MAX_SPEND_CIRC, 1000, 'CIRCUIT_MCP_MAX_SPEND_CIRC'); // per call
   const totalCirc = posNum(env.CIRCUIT_MCP_MAX_TOTAL_CIRC, 50_000, 'CIRCUIT_MCP_MAX_TOTAL_CIRC'); // per process — the real drain guard
-  const timeoutMs = posNum(env.CIRCUIT_MCP_TIMEOUT_MS, 30_000, 'CIRCUIT_MCP_TIMEOUT_MS');
+  // Outer backstop for a WHOLE tool call. It must exceed a legit paid pay-and-retry (initial request +
+  // on-chain CIRC payment, which can take tens of seconds on a slow RPC + the retry) — otherwise it would
+  // kill a slow-but-valid payment mid-flight. @circuit-llm/x402 already bounds each individual HTTP attempt
+  // to ~30s, so this only trips when a call is genuinely stuck, never a merely-slow payment.
+  const timeoutMs = posNum(env.CIRCUIT_MCP_TIMEOUT_MS, 120_000, 'CIRCUIT_MCP_TIMEOUT_MS');
 
   // Validate the optional recipient allow-list — a bad address would silently block EVERY paid tool.
   let treasury = env.CIRCUIT_TREASURY?.trim() || undefined;
@@ -76,14 +80,14 @@ export function buildServer(opts = {}) {
 
   // Bound every tool call so a stalled upstream (the data API accepts the socket but never responds)
   // can't hang the MCP client forever — it returns a clean timeout error instead.
-  const withTimeout = (p) =>
-    Promise.race([
-      p,
-      new Promise((_, reject) => {
-        const t = setTimeout(() => reject(new Error(`tool call timed out after ${Math.round(timeoutMs / 1000)}s`)), timeoutMs);
-        if (t.unref) t.unref();
-      }),
-    ]);
+  const withTimeout = (p) => {
+    let timer;
+    const guard = new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error(`tool call timed out after ${Math.round(timeoutMs / 1000)}s`)), timeoutMs);
+      if (timer.unref) timer.unref();
+    });
+    return Promise.race([p, guard]).finally(() => clearTimeout(timer)); // clear on settle so the timer doesn't linger
+  };
 
   // Register a tool with unified error handling: a timeout backstop, a friendly hint when a paid tool is
   // hit with no wallet, and a clear message when a spend cap is reached.
@@ -92,14 +96,19 @@ export function buildServer(opts = {}) {
       try {
         return asText(await withTimeout(Promise.resolve().then(() => run(args ?? {}))));
       } catch (e) {
+        const name = e?.name;
         const msg = e?.message ?? String(e);
-        if (!hasWallet && /payment required|402|no wallet|spend cap|insufficient/i.test(msg)) {
+        // Match on the @circuit-llm/x402 error class name (each sets this.name) — robust to message wording.
+        if (name === 'PaymentRequiredError') {
           return asError(`this tool costs CIRC. Set CIRCUIT_WALLET to a funded base58 secret key to enable paid tools. (${msg})`);
         }
-        if (/spend cap|maxTotalSpend|total spend/i.test(msg)) {
+        if (name === 'SpendCapError' || name === 'BudgetExceededError') {
           return asError(`spend cap reached — raise CIRCUIT_MCP_MAX_SPEND_CIRC / CIRCUIT_MCP_MAX_TOTAL_CIRC (or restart). (${msg})`);
         }
-        return asError(msg);
+        if (name === 'RecipientNotAllowedError') {
+          return asError(`payment blocked — CIRCUIT_TREASURY doesn't match the endpoint's payee. Unset it or set the correct treasury. (${msg})`);
+        }
+        return asError(msg); // InsufficientFundsError etc. already carry a clear message
       }
     });
 
