@@ -35,3 +35,19 @@ export class InsufficientFundsError extends Error {
     this.needRaw = needRaw;
   }
 }
+
+/**
+ * Thrown when a transaction was successfully broadcast (so it may well land on-chain) but confirmation
+ * could not be observed — a transient RPC/network failure while polling, common on public RPCs. The
+ * `signature` is preserved so the caller can reconcile (poll status / re-verify) rather than lose it and
+ * risk a blind retry that double-spends.
+ */
+export class TransactionUnconfirmedError extends Error {
+  readonly signature: string;
+
+  constructor(signature: string, detail?: string) {
+    super(`Transaction ${signature} was broadcast but not confirmed${detail ? `: ${detail}` : ''}. It may still land — reconcile before retrying.`);
+    this.name = 'TransactionUnconfirmedError';
+    this.signature = signature;
+  }
+}

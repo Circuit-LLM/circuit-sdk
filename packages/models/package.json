@@ -1,6 +1,6 @@
 {
   "name": "@circuit-llm/models",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "Circuit SDK models — client for the circuitllm.xyz/models gateway: buy prepaid credits in USDC/SOL/CIRC, mint a Circuit API key, and call the metered OpenAI-compatible chat API.",
   "license": "MIT",
   "type": "module",
@@ -18,8 +18,8 @@
     "prepack": "tsup src/index.ts --format esm --dts --clean --out-dir dist"
   },
   "dependencies": {
-    "@circuit-llm/core": "0.2.4",
-    "@circuit-llm/wallet": "0.2.4"
+    "@circuit-llm/core": "0.2.5",
+    "@circuit-llm/wallet": "0.2.5"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

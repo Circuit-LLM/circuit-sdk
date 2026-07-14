@@ -22,7 +22,7 @@ import bs58 from 'bs58';
 import { DEFAULT_CONFIG, type CircuitConfig } from '@circuit-llm/core';
 import type { PaymentWallet } from '@circuit-llm/x402';
 import { loadKeypairFromEnv } from './keypair.ts';
-import { InsufficientFundsError } from './errors.ts';
+import { InsufficientFundsError, TransactionUnconfirmedError } from './errors.ts';
 import { warnIfDefaultPublicRpc } from './rpc-warning.ts';
 
 // Jupiter swap endpoints. The free `lite-api` host is aggressively rate-limited (429 under any load); with
@@ -46,6 +46,30 @@ const BASE_FEE_LAMPORTS = 5000n;
 // Ed25519 PKCS8 DER framing — prefixes a raw 32-byte seed so node:crypto can load it as a private key
 // for detached message signing. Same prefix @circuit-llm/core's owner-auth uses; see docs/canonical-serialization.md.
 const ED25519_PKCS8_PREFIX = Buffer.from('302e020100300506032b657004220420', 'hex');
+
+// Programs a legitimate payment transaction may touch. signAndSendTransaction refuses to sign a
+// server-built tx that references anything else — the guard against a compromised endpoint slipping in
+// an Approve/SetAuthority (delegate/authority grant) or a call to an arbitrary program.
+const SYSTEM_PROGRAM = '11111111111111111111111111111111';
+const TOKEN_PROGRAM = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
+const TOKEN_2022_PROGRAM = 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb';
+const ATA_PROGRAM = 'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL';
+const COMPUTE_BUDGET_PROGRAM = 'ComputeBudget111111111111111111111111111111';
+const PAYMENT_PROGRAMS = new Set([SYSTEM_PROGRAM, TOKEN_PROGRAM, TOKEN_2022_PROGRAM, ATA_PROGRAM, COMPUTE_BUDGET_PROGRAM]);
+// Allowed instruction discriminators: System Transfer index (u32 LE) = 2; SPL Token Transfer = 3,
+// TransferChecked = 12. Everything else (Approve=4, SetAuthority=6, Burn=8, CloseAccount=9, …) is refused.
+const SYSTEM_TRANSFER_IX = 2;
+const TOKEN_TRANSFER_IXS = new Set([3, 12]);
+
+/** What a payment transaction is expected to do, so signAndSendTransaction can verify before signing. */
+export interface ExpectedPayment {
+  /** The wallet the funds must go to (native SOL) or whose ATA must receive the token. */
+  recipient?: string;
+  /** Token mint (omit for native SOL). Required to pin a token-transfer recipient. */
+  mint?: string;
+  /** Token program that owns the mint (SPL Token vs Token-2022). Required with `mint`. */
+  tokenProgram?: string;
+}
 
 // A genuinely-missing token account (the wallet never held CIRC) reads as a real zero balance. Any OTHER
 // read failure is unknown and must NOT be reported as "insufficient" — that would mask the real error.
@@ -225,19 +249,62 @@ export class Wallet implements PaymentWallet {
     return bs58.encode(crypto.sign(null, Buffer.from(bytes), priv));
   }
 
+  // Verify a server-built payment tx does ONLY what a payment should before we countersign it: every
+  // instruction targets an allow-listed program, token instructions are transfers (not Approve/SetAuthority/
+  // Burn/Close), and — when `expected` is given — every transfer goes to the expected recipient. Fails
+  // closed. Defends against a compromised/MITM'd endpoint returning a tx that grants a delegate or redirects
+  // funds; `signAndSendTransaction` blind-signing whatever bytes it's handed would otherwise authorize it.
+  private assertSafePayment(tx: Transaction, expected?: ExpectedPayment): void {
+    for (const ix of tx.instructions) {
+      const pid = ix.programId.toBase58();
+      if (!PAYMENT_PROGRAMS.has(pid)) {
+        throw new Error(`refusing to sign: transaction references an unexpected program ${pid} (payments use only System/Token/ATA/ComputeBudget)`);
+      }
+      if (pid === SYSTEM_PROGRAM) {
+        const idx = ix.data.length >= 4 ? ix.data.readUInt32LE(0) : -1;
+        if (idx !== SYSTEM_TRANSFER_IX) throw new Error(`refusing to sign: disallowed System instruction ${idx} (only Transfer is allowed)`);
+        if (expected?.recipient) {
+          const dest = ix.keys[1]?.pubkey?.toBase58();
+          if (dest !== expected.recipient) throw new Error(`refusing to sign: SOL transfer to ${dest ?? '?'} — expected ${expected.recipient}`);
+        }
+      } else if (pid === TOKEN_PROGRAM || pid === TOKEN_2022_PROGRAM) {
+        const disc = ix.data[0] ?? -1;
+        if (!TOKEN_TRANSFER_IXS.has(disc)) throw new Error(`refusing to sign: disallowed token instruction ${disc} (only Transfer/TransferChecked)`);
+        if (expected?.recipient) {
+          if (!expected.mint || !expected.tokenProgram) throw new Error('refusing to sign: cannot verify a token-transfer recipient without expected.mint + expected.tokenProgram');
+          const destIdx = disc === 12 ? 2 : 1; // TransferChecked: [src, mint, dest, owner]; Transfer: [src, dest, owner]
+          const dest = ix.keys[destIdx]?.pubkey?.toBase58();
+          const wantAta = getAssociatedTokenAddressSync(new PublicKey(expected.mint), new PublicKey(expected.recipient), false, new PublicKey(expected.tokenProgram)).toBase58();
+          if (dest !== wantAta) throw new Error(`refusing to sign: token transfer to ${dest ?? '?'} — expected the recipient's ATA ${wantAta}`);
+        }
+      }
+      // ATA (create the destination account) + ComputeBudget (priority fee) are benign — allowed as-is.
+    }
+  }
+
   /** Sign a server-built, base64-serialized legacy transaction and broadcast it (with RPC failover).
-   *  The server sets the fee payer + a recent blockhash; we only add our signature, so a re-broadcast on
-   *  failover is idempotent (Solana dedups by the fixed signature). Returns the transaction signature. */
-  async signAndSendTransaction(base64Tx: string): Promise<string> {
+   *  Before signing, the tx is validated to be a plain payment (allow-listed programs; transfers only;
+   *  and, when `expected` is passed, going to the expected recipient) — never blind-signed. The server
+   *  sets the fee payer + a recent blockhash; we only add our signature, so a re-broadcast on failover is
+   *  idempotent (Solana dedups by the fixed signature). Returns the transaction signature. Throws
+   *  TransactionUnconfirmedError (carrying the signature) if the tx broadcasts but can't be confirmed. */
+  async signAndSendTransaction(base64Tx: string, expected?: ExpectedPayment): Promise<string> {
     const kp = this.requireKeypair();
     const tx = Transaction.from(Buffer.from(base64Tx, 'base64'));
+    this.assertSafePayment(tx, expected);
     tx.sign(kp);
     const raw = tx.serialize();
-    return this.withRpc(async (c) => {
-      const sig = await c.sendRawTransaction(raw, { maxRetries: 3 });
-      await c.confirmTransaction(sig, 'confirmed');
-      return sig;
-    });
+    // Broadcast with failover — the signature is fixed, so re-sending on another RPC re-broadcasts the
+    // SAME transaction (never a second one).
+    const sig = await this.withRpc((c) => c.sendRawTransaction(raw, { maxRetries: 3 }));
+    // Confirm best-effort; if confirmation can't be observed the tx may still land, so surface the signature
+    // (never lose it to a blind-retry double-spend).
+    try {
+      await this.withRpc((c) => c.confirmTransaction(sig, 'confirmed'));
+    } catch (e) {
+      throw new TransactionUnconfirmedError(sig, (e as { message?: string } | null)?.message);
+    }
+    return sig;
   }
 
   // Sign a legacy Transaction ONCE against a fresh blockhash, then broadcast the fixed-signature bytes.

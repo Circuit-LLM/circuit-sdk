@@ -145,6 +145,14 @@ export class ModelsError extends Error {
 const JSON_HEADERS = { 'Content-Type': 'application/json' } as const;
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
 
+// Mint + token program per accepted token, so buy() can tell the wallet the exact expected on-chain
+// recipient and refuse to sign a purchase tx that pays anywhere else. SOL is native (no mint/ATA).
+const TOKEN_META: Record<CreditToken, { mint?: string; tokenProgram?: string }> = {
+  SOL: {},
+  USDC: { mint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', tokenProgram: 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA' },
+  CIRC: { mint: '8fQgfsRnRkKSeNUhevT7wp8mhNvMSJdLn1fJi4oVpump', tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb' },
+};
+
 export class Models {
   private readonly wallet?: Wallet;
   private readonly apiKey?: string;
@@ -223,13 +231,36 @@ export class Models {
    *  balance (and, on a brand-new account, its first `circuitKey`). */
   async buy(token: CreditToken, usd: number, opts: BuyOptions = {}): Promise<BuyResult> {
     const wallet = this.requireWallet();
-    const { transaction } = await this.buildPurchase(token, usd);
-    const paymentSig = await wallet.signAndSendTransaction(transaction);
+    const { transaction, payTo } = await this.buildPurchase(token, usd);
+    const meta = TOKEN_META[token];
+
+    // Sign+send, pinning the recipient so the wallet refuses a tampered tx. If the tx broadcasts but
+    // can't be confirmed, we still have the signature — the payment may have landed, so reconcile via
+    // verify rather than losing it (a blind buy() retry could double-pay).
+    let paymentSig: string;
+    try {
+      paymentSig = await wallet.signAndSendTransaction(transaction, { recipient: payTo, mint: meta.mint, tokenProgram: meta.tokenProgram });
+    } catch (e) {
+      const sig = (e as { signature?: string })?.signature;
+      if (!sig) throw e;
+      paymentSig = sig;
+    }
+
+    // Poll the gateway to credit the ledger, tolerating transient errors until the deadline. Whatever
+    // this throws always carries paymentSig so a paid-but-uncredited purchase can be reconciled.
     const deadline = Date.now() + (opts.timeoutMs ?? 90_000);
+    let lastError: string | undefined;
     for (;;) {
-      const r = await this.verifyPurchase(paymentSig);
-      if (!r.pending) return { ...r, paymentSig };
-      if (Date.now() >= deadline) throw new ModelsError('purchase still pending after timeout', 202, r);
+      try {
+        const r = await this.verifyPurchase(paymentSig);
+        if (!r.pending) return { ...r, paymentSig };
+        lastError = undefined;
+      } catch (e) {
+        lastError = e instanceof Error ? e.message : String(e); // transient gateway/network blip — keep polling
+      }
+      if (Date.now() >= deadline) {
+        throw new ModelsError(`purchase not confirmed before timeout — reconcile with paymentSig ${paymentSig}`, 202, { paymentSig, pending: true, lastError });
+      }
       await sleep(opts.pollMs ?? 3000);
     }
   }

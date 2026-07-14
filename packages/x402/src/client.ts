@@ -85,6 +85,10 @@ export interface X402Options {
   fetchImpl?: typeof fetch;
   /** ms before the single transient-error retry (after the CIRC was already spent). */
   retryDelayMs?: number;
+  /** Per-request timeout (ms) applied via AbortSignal when the caller passes no `signal` of its own,
+   *  so a stalled endpoint can't hang the call forever. A fresh budget is used for each attempt of the
+   *  pay-and-retry flow (not shared across it). Default 30000; set 0 to disable. */
+  timeoutMs?: number;
 }
 
 export interface X402Result {
@@ -103,6 +107,7 @@ export class X402Client {
   private readonly onPay?: X402Options['onPay'];
   private readonly fetchImpl: typeof fetch;
   private readonly retryDelayMs: number;
+  private readonly timeoutMs: number;
   private spentRaw = 0n; // cumulative CIRC paid by this client
 
   constructor(opts: X402Options = {}) {
@@ -113,6 +118,13 @@ export class X402Client {
     this.onPay = opts.onPay;
     this.fetchImpl = opts.fetchImpl ?? fetch;
     this.retryDelayMs = opts.retryDelayMs ?? 2000;
+    this.timeoutMs = opts.timeoutMs ?? 30_000;
+  }
+
+  /** A fresh per-attempt timeout signal (or the caller's own signal if provided). */
+  private signal(init: RequestInit): AbortSignal | undefined {
+    if (init.signal) return init.signal;
+    return this.timeoutMs > 0 ? AbortSignal.timeout(this.timeoutMs) : undefined;
   }
 
   /** Total CIRC (raw base units) this client has paid so far. */
@@ -160,7 +172,7 @@ export class X402Client {
   async fetch(url: string | URL, init: RequestInit = {}): Promise<Response> {
     const baseHeaders = (init.headers as Record<string, string> | undefined) ?? {};
     const { resp } = await this.request((extra) =>
-      this.fetchImpl(url, { ...init, headers: { ...baseHeaders, ...extra } }),
+      this.fetchImpl(url, { ...init, headers: { ...baseHeaders, ...extra }, signal: this.signal(init) }),
     );
     return resp;
   }
@@ -170,7 +182,7 @@ export class X402Client {
   async json<T = unknown>(url: string | URL, init: RequestInit = {}): Promise<X402JsonResult<T>> {
     const baseHeaders = (init.headers as Record<string, string> | undefined) ?? {};
     const { resp, paymentTx, quote } = await this.request((extra) =>
-      this.fetchImpl(url, { ...init, headers: { ...baseHeaders, ...extra } }),
+      this.fetchImpl(url, { ...init, headers: { ...baseHeaders, ...extra }, signal: this.signal(init) }),
     );
     const text = await resp.text();
     let body: unknown;

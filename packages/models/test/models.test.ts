@@ -134,3 +134,53 @@ test('wallet-gated methods throw without a wallet', async () => {
   await assert.rejects(() => m.issueKey(), /needs a wallet/);
   await assert.rejects(() => m.buy('SOL', 5), /needs a wallet/);
 });
+
+test('buy() keeps polling through a transient verify error, then succeeds', async () => {
+  const verify = [
+    () => jsonResp(500, { error: 'blip' }), // transient → req() throws; must NOT abort the loop
+    () => jsonResp(200, { ok: true, pending: true }),
+    () => jsonResp(200, { ok: true, creditedUsd: 5, balanceUsd: 5 }),
+  ];
+  let i = 0;
+  const fetchImpl = (async (url: string) => {
+    if (url.endsWith('/purchase/build')) return jsonResp(200, { transaction: 'TX', payTo: 'PayTo', token: 'SOL', amountTokens: 0.03, usd: 5, priceUsd: 160 });
+    if (url.endsWith('/purchase/verify')) return (verify[i++] ?? verify[verify.length - 1])!();
+    throw new Error('unexpected ' + url);
+  }) as typeof fetch;
+  const m = new Models({ wallet: fakeWallet(), fetchImpl });
+  const r = await m.buy('SOL', 5, { pollMs: 1 });
+  assert.equal(r.creditedUsd, 5);
+  assert.equal(r.paymentSig, 'PAYSIG');
+});
+
+test('buy() throws with paymentSig when it never confirms before the deadline', async () => {
+  const fetchImpl = (async (url: string) => {
+    if (url.endsWith('/purchase/build')) return jsonResp(200, { transaction: 'TX', payTo: 'PayTo' });
+    if (url.endsWith('/purchase/verify')) return jsonResp(200, { ok: true, pending: true }); // never settles
+    throw new Error('unexpected ' + url);
+  }) as typeof fetch;
+  const m = new Models({ wallet: fakeWallet(), fetchImpl });
+  await assert.rejects(
+    () => m.buy('SOL', 5, { pollMs: 1, timeoutMs: 5 }),
+    (e: unknown) =>
+      e instanceof ModelsError && /paymentSig PAYSIG/.test(e.message) && (e.body as { paymentSig?: string })?.paymentSig === 'PAYSIG',
+  );
+});
+
+test('buy() recovers the signature when the wallet reports the tx unconfirmed', async () => {
+  const wallet = fakeWallet({
+    signAndSendTransaction: (async () => {
+      const e = new Error('broadcast but not confirmed') as Error & { signature?: string };
+      e.signature = 'RECOVERED';
+      throw e;
+    }) as Wallet['signAndSendTransaction'],
+  });
+  const fetchImpl = (async (url: string) => {
+    if (url.endsWith('/purchase/build')) return jsonResp(200, { transaction: 'TX', payTo: 'PayTo' });
+    if (url.endsWith('/purchase/verify')) return jsonResp(200, { ok: true, creditedUsd: 5, balanceUsd: 5 });
+    throw new Error('unexpected ' + url);
+  }) as typeof fetch;
+  const m = new Models({ wallet, fetchImpl });
+  const r = await m.buy('SOL', 5, { pollMs: 1 });
+  assert.equal(r.paymentSig, 'RECOVERED');
+});
