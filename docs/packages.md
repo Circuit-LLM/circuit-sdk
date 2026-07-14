@@ -11,6 +11,7 @@ batteries-included **`@circuit-llm/sdk`** to get everything, or depend on exactl
 | [`@circuit-llm/data`](#circuitdata) | typed Circuit Data API client |
 | [`@circuit-llm/wallet`](#circuitwallet) | SOL/CIRC balances, transfers, swaps (multi-RPC failover) |
 | [`@circuit-llm/models`](#circuitmodels) | circuitllm.xyz/models gateway — prepaid credits + OpenAI-compatible chat |
+| [`@circuit-llm/mcp`](#circuitmcp) | MCP server (runnable) — Circuit data + swarm intel as x402-paid agent tools |
 | [`@circuit-llm/agent`](#circuitagent) | the `CircuitAgent` runtime (off-box custody + verified intents) |
 | [`@circuit-llm/attest`](#circuitattest) | verified intents — sign/verify evidence, rule DSL, decision gate |
 | [`@circuit-llm/node`](#circuitnode) | join/manage a mesh node from code |
@@ -211,6 +212,27 @@ the gateway-built transfer and `issueKey()` uses `signMessage` for the auth sign
 required for those; chat needs only an `apiKey`. Chat is plain OpenAI-compatible, so you can also skip this
 package and point the official OpenAI SDK at `models.openaiBaseUrl` with your key. Non-2xx responses throw
 `ModelsError`. Depends on `@circuit-llm/core` + `@circuit-llm/wallet`.
+
+---
+
+## `@circuit-llm/mcp`
+
+A runnable **[MCP](https://modelcontextprotocol.io) server** (not an import-library) that exposes Circuit's
+Solana data + agent-swarm intelligence as tools any AI agent can call, **auto-paid per call in CIRC** via
+x402. A thin layer over [`@circuit-llm/data`](#circuitdata): free endpoints return data; paid ones are
+auto-paid from the configured wallet, bounded per call **and** per process.
+
+```jsonc
+// claude_desktop_config.json → "mcpServers"
+{ "circuit": { "command": "npx", "args": ["-y", "@circuit-llm/mcp"],
+    "env": { "CIRCUIT_WALLET": "<base58 secret funded with CIRC>" } } }   // omit → free tools only
+```
+
+Ten tools — free (`circuit_quote`, `token_price`, `live_prices`, `scan`) plus paid, led by **`swarm_feed`**
+and **`swarm_consensus`** (live signals from the trading-agent fleet — data no generic price API has).
+Configured entirely by env: spend caps (`CIRCUIT_MCP_MAX_SPEND_CIRC` per call, `CIRCUIT_MCP_MAX_TOTAL_CIRC`
+per process), `CIRCUIT_TREASURY` to pin the payee. Read-only; no internal-key bypass. Depends on
+`@circuit-llm/data` + `@circuit-llm/wallet`. Full reference: **[apps/mcp/README.md](../apps/mcp/README.md)**.
 
 ---
 

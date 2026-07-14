@@ -29,7 +29,7 @@
 
 ---
 
-**[What it is](#what-it-is)** · **[Quick start](#quick-start)** · **[x402](#x402--pay-per-call-no-api-keys)** · **[Packages](#the-packages)** · **[CLI](#use-the-cli)** · **[Agents](#write-an-agent)** · **[Contribute](#contribute-a-node)** · **[How it works](#how-it-works)** · **[Docs](#docs)**
+**[What it is](#what-it-is)** · **[Quick start](#quick-start)** · **[x402](#x402--pay-per-call-no-api-keys)** · **[Packages](#the-packages)** · **[CLI](#use-the-cli)** · **[MCP](#connect-the-mcp)** · **[Agents](#write-an-agent)** · **[Contribute](#contribute-a-node)** · **[How it works](#how-it-works)** · **[Docs](#docs)**
 
 ---
 
@@ -173,6 +173,20 @@ Guide: **[docs/cli.md](docs/cli.md)** · full command reference: **[apps/cli/doc
 
 ---
 
+## Connect the MCP
+
+Give any AI agent Circuit's real-time Solana data and **agent-swarm intelligence** as tools — **auto-paid per call in CIRC** over x402, no API keys. The **`@circuit-llm/mcp`** server (in `apps/mcp`) is a thin [MCP](https://modelcontextprotocol.io) layer over `@circuit-llm/data`; drop it into Claude Desktop, Claude Code, or any agent runtime:
+
+```jsonc
+// claude_desktop_config.json → "mcpServers"
+{ "circuit": { "command": "npx", "args": ["-y", "@circuit-llm/mcp"],
+    "env": { "CIRCUIT_WALLET": "<base58 secret funded with CIRC>" } } }   // omit → free tools only
+```
+
+Ten tools — free ones (`token_price`, `live_prices`, `scan`) plus paid ones led by the differentiator, **`swarm_feed`** / **`swarm_consensus`** (live signals from the running trading-agent fleet). Spend is bounded per call and per session; `CIRCUIT_TREASURY` pins the payee. Details: **[apps/mcp/](apps/mcp/README.md)**.
+
+---
+
 ## Write an agent
 
 The agent runtime. You extend `CircuitAgent`, implement `tick()`, and the runtime owns the rest — env wiring, off-box custody, the heartbeat, logs, and the SIGTERM lifecycle.
@@ -249,6 +263,7 @@ packages/
   sdk/       meta-package (re-exports the consume + agent + contributor packages)
 apps/
   cli/       the `circuit` terminal console — built ON the SDK (npm run cli)
+  mcp/       the MCP server — Circuit data + swarm intel as x402-paid agent tools (npx @circuit-llm/mcp)
 circuit-py/  Python consume client (inference + data + x402)
 ```
 
@@ -268,7 +283,7 @@ Design principles, the dependency graph, and the build model are in **[docs/arch
 
 ## Status & roadmap
 
-**Beta.** All fourteen TypeScript packages + the `circuit` CLI (in `apps/cli`) + the Python client are built, extracted faithfully from the live ecosystem, and covered by **208 tests** (196 TS + 12 Python), all typecheck-clean. The CLI lives in the monorepo and consumes `@circuit-llm/*` directly, so the SDK is the single source for the shared logic (bundle codec, wallet, owner-auth). The full roadmap — spine → consume → agents → contributor → extended (bundles · vault · on-chain control-plane reads) — is complete.
+**Beta.** All fourteen TypeScript packages + the `circuit` CLI and MCP server (in `apps/`) + the Python client are built, extracted faithfully from the live ecosystem, and covered by **208 tests** (196 TS + 12 Python), all typecheck-clean. The CLI lives in the monorepo and consumes `@circuit-llm/*` directly, so the SDK is the single source for the shared logic (bundle codec, wallet, owner-auth). The full roadmap — spine → consume → agents → contributor → extended (bundles · vault · on-chain control-plane reads) — is complete.
 
 Working today: paid inference and data, CIRC wallet operations, the `CircuitAgent` runtime across the full custody spectrum (paper, self-custody, off-box signer, and the on-chain vault client), the mesh and registry clients, and on-chain stake reads. Planned: streaming and a native Solana `PaymentWallet` for the Python client.
 
@@ -279,6 +294,7 @@ Working today: paid inference and data, CIRC wallet operations, the `CircuitAgen
 - **[docs/getting-started.md](docs/getting-started.md)** — install, connect a wallet, your first paid call (TS + Python)
 - **[docs/packages.md](docs/packages.md)** — every package's API surface
 - **[docs/cli.md](docs/cli.md)** — the `circuit` terminal console (modules, commands, config) → deep dive in **[apps/cli/](apps/cli/README.md)**
+- **[apps/mcp/](apps/mcp/README.md)** — the **`@circuit-llm/mcp`** server: Circuit data + swarm intel as x402-paid agent tools
 - **[docs/x402.md](docs/x402.md)** — the payment spine, client + server
 - **[docs/agents.md](docs/agents.md)** — write + host an agent, the four custody modes in depth
 - **[docs/verified-intents.md](docs/verified-intents.md)** — commit a decision rule; the signer signs only the trade that rule produces

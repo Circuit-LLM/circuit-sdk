@@ -57,6 +57,7 @@ circuit-sdk/
     sdk/         meta-package — re-exports the consume + agent + contributor packages
   apps/
     cli/         the `circuit` terminal console — built on the SDK (npm run cli)
+    mcp/         the MCP server — data + swarm intel as x402-paid tools (npx @circuit-llm/mcp)
   circuit-py/    Python consume client (inference + data + x402)         ← stdlib only
   docs/          the documentation set (this file + guides + API reference)
 ```

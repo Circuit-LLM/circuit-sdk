@@ -1,8 +1,10 @@
 # @circuit-llm/models
 
-Client for the Circuit **models gateway** that powers **[circuitllm.xyz/models](https://circuitllm.xyz/models)** —
-a pay-as-you-go, **OpenAI-compatible** reseller of OpenRouter, paid in Solana crypto against a prepaid USD
-ledger.
+[![npm](https://img.shields.io/npm/v/@circuit-llm/models?color=cb3837&label=npm)](https://www.npmjs.com/package/@circuit-llm/models)
+
+> Client for the Circuit **models gateway** ([circuitllm.xyz/models](https://circuitllm.xyz/models)) — a pay-as-you-go, **OpenAI-compatible** reseller of OpenRouter, paid in Solana crypto against a prepaid USD ledger.
+
+Part of the **[Circuit SDK](https://github.com/Circuit-LLM/circuit-sdk)**. [Packages →](https://github.com/Circuit-LLM/circuit-sdk/blob/main/docs/packages.md)
 
 Three things, only the first of which any other SDK can do:
 

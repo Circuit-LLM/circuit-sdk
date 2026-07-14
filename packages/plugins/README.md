@@ -1,8 +1,10 @@
 # @circuit-llm/plugins
 
-Drop-in adapters that give **any agent framework** access to the Circuit Data API — live
-Solana market and on-chain data (prices, token security, holders, market regime, wallet
-analytics), paid per call in **CIRC via x402**. Free-tier endpoints work with no wallet.
+[![npm](https://img.shields.io/npm/v/@circuit-llm/plugins?color=cb3837&label=npm)](https://www.npmjs.com/package/@circuit-llm/plugins)
+
+> Drop-in adapters that give **any agent framework** access to the Circuit Data API — live Solana market and on-chain data (prices, token security, holders, market regime, wallet analytics), paid per call in **CIRC via x402**. Free-tier endpoints work with no wallet.
+
+Part of the **[Circuit SDK](https://github.com/Circuit-LLM/circuit-sdk)**. [Packages →](https://github.com/Circuit-LLM/circuit-sdk/blob/main/docs/packages.md)
 
 One dependency turns an agent into a Circuit data consumer. Same catalog, three surfaces.
 
