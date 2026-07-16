@@ -172,6 +172,23 @@ export class Wallet implements PaymentWallet {
     }
   }
 
+  /** PaymentWallet.sendToken — transfer any SPL / Token-2022 token. amountRaw = base units,
+   *  tokenProgram = 'spl' | 'token2022'. Used by the x402 Universal Adapter to pay a registered
+   *  token instead of CIRC. Self-built (same as sendCirc), so it takes the trusted-tx path. */
+  async sendToken(mint: string, toAddress: string, amountRaw: bigint, decimals: number, tokenProgram: string): Promise<string> {
+    const kp = this.requireKeypair();
+    const to = new PublicKey(toAddress);
+    const mintPk = new PublicKey(mint);
+    const prog = new PublicKey(tokenProgram === 'token2022' ? TOKEN_2022_PROGRAM : TOKEN_PROGRAM);
+    const fromAta = getAssociatedTokenAddressSync(mintPk, kp.publicKey, false, prog);
+    const toAta = getAssociatedTokenAddressSync(mintPk, to, false, prog);
+    const tx = new Transaction().add(
+      createAssociatedTokenAccountIdempotentInstruction(kp.publicKey, toAta, to, mintPk, prog),
+      createTransferCheckedInstruction(fromAta, mintPk, toAta, kp.publicKey, amountRaw, decimals, [], prog),
+    );
+    return await this.sendSigned(tx, kp);
+  }
+
   async sendSol(toAddress: string, sol: number): Promise<string> {
     const kp = this.requireKeypair();
     const lamports = Math.round(sol * LAMPORTS_PER_SOL);

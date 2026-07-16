@@ -14,6 +14,9 @@ export interface DataOptions {
   allowedRecipients?: string[];
   /** Cumulative CIRC budget (raw) across all calls — bounds a hostile endpoint to a total, not per-call. */
   maxTotalSpendRaw?: bigint;
+  /** Pay a registered token instead of CIRC (x402 Universal Adapter): the mint to spend. Needs a wallet
+   *  that implements sendToken; falls back to CIRC on any endpoint that doesn't accept the token. */
+  payToken?: string;
   onPay?: (quote: PaymentQuote) => void | Promise<void>;
   config?: CircuitConfig;
   /** Override the data API base (else config.endpoints.data). */
@@ -41,6 +44,7 @@ export class Data {
         maxSpendRaw: opts.maxSpendRaw,
         allowedRecipients: opts.allowedRecipients,
         maxTotalSpendRaw: opts.maxTotalSpendRaw,
+        payToken: opts.payToken,
         onPay: opts.onPay,
         fetchImpl,
       });

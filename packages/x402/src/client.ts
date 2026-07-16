@@ -3,13 +3,17 @@
 // read, via clone). Ported from circuit-cli/src/services/x402.js, hardened with a
 // spend cap and an async approval hook.
 
-import { parse402, type PaymentQuote } from './quote.ts';
+import { parse402, parseAcceptedTokens, type PaymentQuote } from './quote.ts';
 
 /** The only thing the payment spine needs from a wallet. @circuit-llm/wallet (Phase 1)
  *  is one implementation; any object with this shape works (structural typing). */
 export interface PaymentWallet {
   /** Send `amountRaw` base units of CIRC to `recipient`; resolve to the tx signature. */
   sendCirc(recipient: string, amountRaw: bigint): Promise<string>;
+  /** Send `amountRaw` base units of a registered token (x402 Universal Adapter). Optional — a
+   *  CIRC-only wallet omits it, and `payToken` then falls back to CIRC. `tokenProgram` is
+   *  'spl' | 'token2022'. */
+  sendToken?(mint: string, recipient: string, amountRaw: bigint, decimals: number, tokenProgram: string): Promise<string>;
   /** Optional payer address, for logging / spend tracking (null when read-only). */
   readonly address?: string | null;
 }
@@ -80,6 +84,11 @@ export interface X402Options {
   /** Cumulative ceiling (raw CIRC base units) across ALL calls this client makes — the real drain
    *  guard, since maxSpendRaw alone lets a hostile endpoint take the cap on every request. */
   maxTotalSpendRaw?: bigint;
+  /** Pay a registered token instead of CIRC (x402 Universal Adapter): the mint to spend. It must
+   *  appear in the 402's `acceptedTokens` AND the wallet must implement `sendToken`, else the client
+   *  falls back to CIRC. The CIRC caps (maxSpendRaw/maxTotalSpendRaw) don't apply to a foreign-token
+   *  payment — they're CIRC-denominated — but `allowedRecipients` still pins the collector. */
+  payToken?: string;
   /** Approval/notification hook; may be async. Throw inside it to abort the payment. */
   onPay?: (quote: PaymentQuote) => void | Promise<void>;
   fetchImpl?: typeof fetch;
@@ -104,6 +113,7 @@ export class X402Client {
   private readonly maxSpendRaw?: bigint;
   private readonly allowedRecipients?: Set<string>;
   private readonly maxTotalSpendRaw?: bigint;
+  private readonly payToken?: string;
   private readonly onPay?: X402Options['onPay'];
   private readonly fetchImpl: typeof fetch;
   private readonly retryDelayMs: number;
@@ -115,6 +125,7 @@ export class X402Client {
     this.maxSpendRaw = opts.maxSpendRaw;
     this.allowedRecipients = opts.allowedRecipients ? new Set(opts.allowedRecipients) : undefined;
     this.maxTotalSpendRaw = opts.maxTotalSpendRaw;
+    this.payToken = opts.payToken;
     this.onPay = opts.onPay;
     this.fetchImpl = opts.fetchImpl ?? fetch;
     this.retryDelayMs = opts.retryDelayMs ?? 2000;
@@ -142,6 +153,37 @@ export class X402Client {
     const quote = parse402(body);
     if (!quote) throw new Error('Endpoint returned 402 without usable payment requirements');
     if (!this.wallet) throw new PaymentRequiredError(quote);
+
+    // x402 Universal Adapter: if configured to pay a registered token AND this 402 lists it, transfer
+    // that token to its collector instead of CIRC. Amounts are in the token's own units, so the
+    // CIRC-denominated caps don't apply here; allowedRecipients still pins where funds may go.
+    if (this.payToken && this.wallet.sendToken) {
+      const tk = parseAcceptedTokens(body).find((a) => a.mint === this.payToken);
+      if (tk) {
+        if (this.allowedRecipients && !this.allowedRecipients.has(tk.recipient)) {
+          throw new RecipientNotAllowedError({ ...quote, recipient: tk.recipient });
+        }
+        const digits = Math.min(tk.decimals, 4);
+        const tokenQuote: PaymentQuote = {
+          ...quote,
+          recipient: tk.recipient,
+          amountRaw: tk.amountRaw,
+          token: tk.mint,
+          tokenDecimals: tk.decimals,
+          amountDisplay: `${(Number(tk.amountRaw) / 10 ** tk.decimals).toFixed(digits)} ${tk.symbol ?? 'token'}`,
+        };
+        await this.onPay?.(tokenQuote);
+        const sig = await this.wallet.sendToken(tk.mint, tk.recipient, tk.amountRaw, tk.decimals, tk.tokenProgram);
+        resp = await requestFn({ 'X-Payment-Signature': sig });
+        if (!resp.ok && TRANSIENT.has(resp.status)) {
+          await new Promise((r) => setTimeout(r, this.retryDelayMs));
+          resp = await requestFn({ 'X-Payment-Signature': sig });
+        }
+        return { resp, paymentTx: sig, quote: tokenQuote };
+      }
+      // payToken set but this endpoint doesn't accept it → fall through to the CIRC path below.
+    }
+
     if (this.maxSpendRaw != null && quote.amountRaw > this.maxSpendRaw) {
       throw new SpendCapError(quote, this.maxSpendRaw);
     }

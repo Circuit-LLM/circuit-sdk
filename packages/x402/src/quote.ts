@@ -54,6 +54,48 @@ export function parse402(body: unknown, path?: string): PaymentQuote | null {
   };
 }
 
+/** One entry from a 402's `acceptedTokens` list — the x402 Universal Adapter's alternative
+ *  payment options. Each is a registered token the gate will accept in place of CIRC (the
+ *  distributor later swaps it to CIRC on the back end). */
+export interface AcceptedToken {
+  mint: string;
+  recipient: string;
+  amountRaw: bigint;
+  decimals: number;
+  /** 'spl' | 'token2022' — which token program owns the mint. */
+  tokenProgram: string;
+  symbol?: string;
+  priceUsd?: number | null;
+}
+
+/** Parse the `acceptedTokens` array from a 402 body. Returns [] if absent (an endpoint that
+ *  only takes CIRC), skipping any entry without a usable mint / recipient / amount. */
+export function parseAcceptedTokens(body: unknown): AcceptedToken[] {
+  const list = (body as { acceptedTokens?: unknown[] } | null)?.acceptedTokens;
+  if (!Array.isArray(list)) return [];
+  const out: AcceptedToken[] = [];
+  for (const t of list) {
+    const o = t as Record<string, unknown> | null;
+    if (!o || !o.mint || !o.recipient || o.amountRaw == null) continue;
+    let amountRaw: bigint;
+    try {
+      amountRaw = BigInt(o.amountRaw as string | number | bigint);
+    } catch {
+      continue;
+    }
+    out.push({
+      mint: String(o.mint),
+      recipient: String(o.recipient),
+      amountRaw,
+      decimals: (o.decimals as number) ?? 6,
+      tokenProgram: (o.tokenProgram as string) ?? 'spl',
+      symbol: o.symbol as string | undefined,
+      priceUsd: (o.priceUsd as number | null | undefined) ?? null,
+    });
+  }
+  return out;
+}
+
 export interface OracleOptions {
   fetchImpl?: typeof fetch;
   jupiterKey?: string;
