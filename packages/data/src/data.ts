@@ -17,6 +17,10 @@ export interface DataOptions {
   /** Pay a registered token instead of CIRC (x402 Universal Adapter): the mint to spend. Needs a wallet
    *  that implements sendToken; falls back to CIRC on any endpoint that doesn't accept the token. */
   payToken?: string;
+  /** REQUIRED with payToken: hard per-call ceiling in the token's own base units (fail-closed spend cap). */
+  maxPayTokenRaw?: bigint;
+  /** Cumulative payToken ceiling (token base units) across all calls. */
+  maxTotalPayTokenRaw?: bigint;
   onPay?: (quote: PaymentQuote) => void | Promise<void>;
   config?: CircuitConfig;
   /** Override the data API base (else config.endpoints.data). */
@@ -45,6 +49,8 @@ export class Data {
         allowedRecipients: opts.allowedRecipients,
         maxTotalSpendRaw: opts.maxTotalSpendRaw,
         payToken: opts.payToken,
+        maxPayTokenRaw: opts.maxPayTokenRaw,
+        maxTotalPayTokenRaw: opts.maxTotalPayTokenRaw,
         onPay: opts.onPay,
         fetchImpl,
       });

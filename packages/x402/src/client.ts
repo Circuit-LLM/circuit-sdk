@@ -31,7 +31,7 @@ export class SpendCapError extends Error {
   readonly quote: PaymentQuote;
   readonly capRaw: bigint;
   constructor(quote: PaymentQuote, capRaw: bigint) {
-    super(`Quoted ${quote.amountDisplay} (${quote.amountRaw} raw) exceeds the spend cap of ${capRaw} raw CIRC`);
+    super(`Quoted ${quote.amountDisplay} (${quote.amountRaw} raw) exceeds the spend cap of ${capRaw} raw`);
     this.name = 'SpendCapError';
     this.quote = quote;
     this.capRaw = capRaw;
@@ -50,8 +50,20 @@ export class RecipientNotAllowedError extends Error {
 export class BudgetExceededError extends Error {
   readonly quote: PaymentQuote;
   constructor(quote: PaymentQuote, spentRaw: bigint, budgetRaw: bigint) {
-    super(`Paying ${quote.amountRaw} would exceed the session budget (${spentRaw}/${budgetRaw} raw CIRC spent)`);
+    super(`Paying ${quote.amountRaw} would exceed the session budget (${spentRaw}/${budgetRaw} raw spent)`);
     this.name = 'BudgetExceededError';
+    this.quote = quote;
+  }
+}
+
+/** Thrown when `payToken` is configured but no per-call token ceiling (`maxPayTokenRaw`) is set.
+ *  A foreign amount is quoted in the token's own units, so the CIRC caps can't bound it — the client
+ *  fails closed rather than transfer an unbounded amount an endpoint dictates. */
+export class PayTokenCapRequiredError extends Error {
+  readonly quote: PaymentQuote;
+  constructor(quote: PaymentQuote) {
+    super(`payToken is set but no maxPayTokenRaw ceiling was configured — refusing to pay ${quote.amountDisplay} unbounded`);
+    this.name = 'PayTokenCapRequiredError';
     this.quote = quote;
   }
 }
@@ -89,6 +101,13 @@ export interface X402Options {
    *  falls back to CIRC. The CIRC caps (maxSpendRaw/maxTotalSpendRaw) don't apply to a foreign-token
    *  payment — they're CIRC-denominated — but `allowedRecipients` still pins the collector. */
   payToken?: string;
+  /** REQUIRED when `payToken` is set: hard per-call ceiling in the token's OWN base units. The foreign
+   *  amount comes from the (untrusted) endpoint and isn't CIRC-denominated, so the CIRC caps can't bound
+   *  it; without this the client fails closed (PayTokenCapRequiredError) rather than pay unbounded. */
+  maxPayTokenRaw?: bigint;
+  /** Cumulative ceiling (token base units) across all payToken calls this client makes — the drain guard,
+   *  analogous to maxTotalSpendRaw for CIRC. */
+  maxTotalPayTokenRaw?: bigint;
   /** Approval/notification hook; may be async. Throw inside it to abort the payment. */
   onPay?: (quote: PaymentQuote) => void | Promise<void>;
   fetchImpl?: typeof fetch;
@@ -114,11 +133,14 @@ export class X402Client {
   private readonly allowedRecipients?: Set<string>;
   private readonly maxTotalSpendRaw?: bigint;
   private readonly payToken?: string;
+  private readonly maxPayTokenRaw?: bigint;
+  private readonly maxTotalPayTokenRaw?: bigint;
   private readonly onPay?: X402Options['onPay'];
   private readonly fetchImpl: typeof fetch;
   private readonly retryDelayMs: number;
   private readonly timeoutMs: number;
   private spentRaw = 0n; // cumulative CIRC paid by this client
+  private spentPayTokenRaw = 0n; // cumulative foreign token (payToken) paid by this client
 
   constructor(opts: X402Options = {}) {
     this.wallet = opts.wallet;
@@ -126,6 +148,8 @@ export class X402Client {
     this.allowedRecipients = opts.allowedRecipients ? new Set(opts.allowedRecipients) : undefined;
     this.maxTotalSpendRaw = opts.maxTotalSpendRaw;
     this.payToken = opts.payToken;
+    this.maxPayTokenRaw = opts.maxPayTokenRaw;
+    this.maxTotalPayTokenRaw = opts.maxTotalPayTokenRaw;
     this.onPay = opts.onPay;
     this.fetchImpl = opts.fetchImpl ?? fetch;
     this.retryDelayMs = opts.retryDelayMs ?? 2000;
@@ -140,6 +164,9 @@ export class X402Client {
 
   /** Total CIRC (raw base units) this client has paid so far. */
   get totalSpentRaw(): bigint { return this.spentRaw; }
+
+  /** Total payToken (raw base units of the configured foreign token) this client has paid so far. */
+  get totalPayTokenSpentRaw(): bigint { return this.spentPayTokenRaw; }
 
   /** Generic pay-and-retry. `requestFn(extraHeaders)` performs one request; on 402 it
    *  is called a second time with the X-Payment-Signature header. */
@@ -160,9 +187,6 @@ export class X402Client {
     if (this.payToken && this.wallet.sendToken) {
       const tk = parseAcceptedTokens(body).find((a) => a.mint === this.payToken);
       if (tk) {
-        if (this.allowedRecipients && !this.allowedRecipients.has(tk.recipient)) {
-          throw new RecipientNotAllowedError({ ...quote, recipient: tk.recipient });
-        }
         const digits = Math.min(tk.decimals, 4);
         const tokenQuote: PaymentQuote = {
           ...quote,
@@ -172,8 +196,20 @@ export class X402Client {
           tokenDecimals: tk.decimals,
           amountDisplay: `${(Number(tk.amountRaw) / 10 ** tk.decimals).toFixed(digits)} ${tk.symbol ?? 'token'}`,
         };
+        // The amount + recipient come from the untrusted endpoint. The CIRC caps can't bound a foreign
+        // amount (different units), so fail closed on a missing token ceiling, enforce it, pin the
+        // recipient, and bound the cumulative token spend — before moving any funds.
+        if (this.maxPayTokenRaw == null) throw new PayTokenCapRequiredError(tokenQuote);
+        if (tk.amountRaw > this.maxPayTokenRaw) throw new SpendCapError(tokenQuote, this.maxPayTokenRaw);
+        if (this.allowedRecipients && !this.allowedRecipients.has(tk.recipient)) {
+          throw new RecipientNotAllowedError(tokenQuote);
+        }
+        if (this.maxTotalPayTokenRaw != null && this.spentPayTokenRaw + tk.amountRaw > this.maxTotalPayTokenRaw) {
+          throw new BudgetExceededError(tokenQuote, this.spentPayTokenRaw, this.maxTotalPayTokenRaw);
+        }
         await this.onPay?.(tokenQuote);
         const sig = await this.wallet.sendToken(tk.mint, tk.recipient, tk.amountRaw, tk.decimals, tk.tokenProgram);
+        this.spentPayTokenRaw += tk.amountRaw;
         resp = await requestFn({ 'X-Payment-Signature': sig });
         if (!resp.ok && TRANSIENT.has(resp.status)) {
           await new Promise((r) => setTimeout(r, this.retryDelayMs));
