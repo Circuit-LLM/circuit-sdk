@@ -118,6 +118,21 @@ const { data } = await x402.json('https://inference.circuitllm.xyz/v1/models');
 
 `X402Client` is generic — wrap *any* x402 endpoint, not just Circuit's. It's streaming-safe, has a spend cap and an approval hook, and ships the server-side `verifyPaymentTx` too, so you can gate your own endpoints with the same code. Deep dive: **[docs/x402.md](docs/x402.md)**.
 
+### Universal token adapter — pay in *any* registered token
+
+A token community can pay Circuit's endpoints in **their own token** instead of CIRC; a distributor swaps it to CIRC on the back end, so the network still settles in CIRC. When a token is [listed](https://circuitllm.xyz/register), the `402` offers it in an `acceptedTokens` list — set `payToken` to spend it:
+
+```ts
+const circuit = new Data({
+  wallet,                          // a wallet holding your token (implements sendToken)
+  payToken: '<your-token-mint>',
+  maxPayTokenRaw: 100_000_000n,    // REQUIRED — per-call ceiling in the token's base units
+});
+await circuit.tokenSecurity(mint); // pays in your token; settles to CIRC
+```
+
+Foreign amounts aren't CIRC-denominated, so the CIRC caps can't bound them — `maxPayTokenRaw` is **required** and the client fails closed without it. If an endpoint doesn't accept the token, it falls back to CIRC. Same API in `circuit-py` (`pay_token` / `max_pay_token_raw`). List a token at **[circuitllm.xyz/register](https://circuitllm.xyz/register)**.
+
 ---
 
 ## The packages
