@@ -53,6 +53,32 @@ def parse_402(body: Any, path: Optional[str] = None) -> Optional[dict]:
     }
 
 
+def parse_accepted_tokens(body: Any) -> list:
+    """Parse a 402's `acceptedTokens` list (x402 Universal Adapter) — registered tokens the gate
+    will accept in place of CIRC. Returns [] if absent, skipping entries without a usable amount."""
+    lst = (body or {}).get("acceptedTokens") if isinstance(body, dict) else None
+    if not isinstance(lst, list):
+        return []
+    out = []
+    for t in lst:
+        if not isinstance(t, dict) or not t.get("mint") or not t.get("recipient") or t.get("amountRaw") is None:
+            continue
+        try:
+            amount_raw = int(t["amountRaw"])
+        except (TypeError, ValueError):
+            continue
+        out.append({
+            "mint": str(t["mint"]),
+            "recipient": str(t["recipient"]),
+            "amount_raw": amount_raw,
+            "decimals": t.get("decimals", 6),
+            "token_program": t.get("tokenProgram", "spl"),
+            "symbol": t.get("symbol"),
+            "price_usd": t.get("priceUsd"),
+        })
+    return out
+
+
 # ── errors ───────────────────────────────────────────────────────────────────
 
 class PaymentRequiredError(Exception):
@@ -63,9 +89,29 @@ class PaymentRequiredError(Exception):
 
 class SpendCapError(Exception):
     def __init__(self, quote: dict, cap_raw: int):
-        super().__init__(f"Quoted {quote['amount_display']} exceeds the spend cap of {cap_raw} raw CIRC")
+        super().__init__(f"Quoted {quote['amount_display']} exceeds the spend cap of {cap_raw} raw")
         self.quote = quote
         self.cap_raw = cap_raw
+
+
+class PayTokenCapRequiredError(Exception):
+    """pay_token set but no max_pay_token_raw — a foreign amount isn't CIRC-denominated, so the CIRC
+    caps can't bound it; the client fails closed rather than pay an unbounded amount an endpoint dictates."""
+    def __init__(self, quote: dict):
+        super().__init__(f"pay_token is set but no max_pay_token_raw ceiling was configured — refusing to pay {quote['amount_display']} unbounded")
+        self.quote = quote
+
+
+class RecipientNotAllowedError(Exception):
+    def __init__(self, quote: dict):
+        super().__init__(f"402 recipient {quote['recipient']} is not in the allowed set — refusing to pay")
+        self.quote = quote
+
+
+class BudgetExceededError(Exception):
+    def __init__(self, quote: dict, spent_raw: int, budget_raw: int):
+        super().__init__(f"Paying {quote['amount_raw']} would exceed the budget ({spent_raw}/{budget_raw} raw spent)")
+        self.quote = quote
 
 
 class X402RequestError(Exception):
@@ -111,6 +157,10 @@ class X402Client:
         transport: Optional[Transport] = None,
         timeout: float = 120.0,
         retry_delay: float = 2.0,
+        pay_token: Optional[str] = None,
+        max_pay_token_raw: Optional[int] = None,
+        max_total_pay_token_raw: Optional[int] = None,
+        allowed_recipients: Optional[list] = None,
     ):
         self.wallet = wallet
         self.max_spend_raw = max_spend_raw
@@ -118,6 +168,12 @@ class X402Client:
         self.transport = transport or default_transport
         self.timeout = timeout
         self.retry_delay = retry_delay
+        # x402 Universal Adapter: pay a registered token instead of CIRC.
+        self.pay_token = pay_token
+        self.max_pay_token_raw = max_pay_token_raw
+        self.max_total_pay_token_raw = max_total_pay_token_raw
+        self.allowed_recipients = set(allowed_recipients) if allowed_recipients else None
+        self._spent_pay_token_raw = 0
 
     def request(self, request_fn: Callable[[dict], HttpResponse]):
         """Generic pay-and-retry. request_fn(extra_headers) -> HttpResponse.
@@ -134,6 +190,38 @@ class X402Client:
             raise X402RequestError(402, "402 without usable payment requirements")
         if not self.wallet:
             raise PaymentRequiredError(quote)
+
+        # x402 Universal Adapter: if configured to pay a registered token AND this 402 offers it,
+        # transfer that token instead of CIRC. Foreign amounts aren't CIRC-denominated, so the CIRC
+        # caps don't apply — fail closed on a missing token cap, enforce it, pin the recipient, and
+        # bound the cumulative token spend before moving funds.
+        if self.pay_token and hasattr(self.wallet, "send_token"):
+            tk = next((a for a in parse_accepted_tokens(body) if a["mint"] == self.pay_token), None)
+            if tk:
+                digits = min(tk["decimals"], 4)
+                token_quote = {
+                    **quote, "recipient": tk["recipient"], "amount_raw": tk["amount_raw"], "token": tk["mint"],
+                    "amount_display": f"{tk['amount_raw'] / (10 ** tk['decimals']):.{digits}f} {tk.get('symbol') or 'token'}",
+                }
+                if self.max_pay_token_raw is None:
+                    raise PayTokenCapRequiredError(token_quote)
+                if tk["amount_raw"] > self.max_pay_token_raw:
+                    raise SpendCapError(token_quote, self.max_pay_token_raw)
+                if self.allowed_recipients is not None and tk["recipient"] not in self.allowed_recipients:
+                    raise RecipientNotAllowedError(token_quote)
+                if self.max_total_pay_token_raw is not None and self._spent_pay_token_raw + tk["amount_raw"] > self.max_total_pay_token_raw:
+                    raise BudgetExceededError(token_quote, self._spent_pay_token_raw, self.max_total_pay_token_raw)
+                if self.on_pay:
+                    self.on_pay(token_quote)
+                tx = self.wallet.send_token(tk["mint"], tk["recipient"], tk["amount_raw"], tk["decimals"], tk["token_program"])
+                self._spent_pay_token_raw += tk["amount_raw"]
+                resp = request_fn({"X-Payment-Signature": tx})
+                if resp.status in _TRANSIENT:
+                    time.sleep(self.retry_delay)
+                    resp = request_fn({"X-Payment-Signature": tx})
+                return resp, tx, token_quote
+            # pay_token set but this endpoint doesn't offer it → fall through to the CIRC path.
+
         if self.max_spend_raw is not None and quote["amount_raw"] > self.max_spend_raw:
             raise SpendCapError(quote, self.max_spend_raw)
         if self.on_pay:

@@ -26,8 +26,16 @@ class Data:
         internal_key: Optional[str] = None,
         transport: Optional[Transport] = None,
         max_spend_raw: Optional[int] = None,
+        pay_token: Optional[str] = None,
+        max_pay_token_raw: Optional[int] = None,
+        max_total_pay_token_raw: Optional[int] = None,
+        allowed_recipients: Optional[list] = None,
     ):
-        self.x402 = x402 or X402Client(wallet=wallet, transport=transport, max_spend_raw=max_spend_raw)
+        self.x402 = x402 or X402Client(
+            wallet=wallet, transport=transport, max_spend_raw=max_spend_raw,
+            pay_token=pay_token, max_pay_token_raw=max_pay_token_raw,
+            max_total_pay_token_raw=max_total_pay_token_raw, allowed_recipients=allowed_recipients,
+        )
         cfg = config or DEFAULT_CONFIG
         self.base = (base_url or cfg["endpoints"]["data"]).rstrip("/")
         self.internal_key = internal_key
