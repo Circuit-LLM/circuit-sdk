@@ -1,6 +1,6 @@
 {
   "name": "@circuit-llm/node",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "Circuit SDK node \u2014 join/manage a mesh node from code: the inference-mesh control plane (register/ready/heartbeat) + the public node registry (announce/ping). The heavy GPU serving stays in the node image.",
   "license": "MIT",
   "type": "module",
@@ -18,7 +18,7 @@
     "prepack": "tsup src/index.ts --format esm --dts --clean --out-dir dist"
   },
   "dependencies": {
-    "@circuit-llm/core": "0.2.5"
+    "@circuit-llm/core": "0.2.6"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
