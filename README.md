@@ -327,6 +327,18 @@ Part of the Circuit ecosystem. The `circuit` terminal CLI now ships **in this re
 
 ---
 
+## Ecosystem
+
+Build on the same x402 payment spine outside the Circuit network:
+
+- **[GenTech Labs](https://gentechlabs.net)** — 15 x402-protected API endpoints for market data, DeFi intelligence, wallet analytics, token security, and AI agent infrastructure. Settle in USDC on Base. [`api.gentechlabs.net`](https://api.gentechlabs.net) · [`gentech-kit`](https://github.com/ProtoJay4789/genTech-agent-kit) · [x402scan](https://x402scan.com)
+
+The Circuit SDK's `X402Client` works against any x402 endpoint — Circuit's, GenTech's, or your own. Set `allowedRecipients` to pin the treasury, `maxSpendRaw` to cap per-call spend, and call any x402-gated API with the same wallet.
+
+To list your project here, open a PR.
+
+---
+
 ## License
 
 MIT © Circuit LLM — see [LICENSE](LICENSE).
