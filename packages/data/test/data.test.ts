@@ -54,3 +54,36 @@ test('non-2xx surfaces as X402RequestError', async () => {
   const data = new Data({ fetchImpl, baseUrl: 'https://api.test' });
   await assert.rejects(() => data.marketOverview(), (e: unknown) => e instanceof X402RequestError && e.status === 500);
 });
+
+// ── path-style analytics suite (circuit-node endpoints fronted on the data-api) ──
+test('token analytics methods build path-style URLs (encoded)', async () => {
+  const seen: Record<string, string> = {};
+  const mk = (name: string) => (async (u: string) => { seen[name] = u; return jsonResp(200, {}); }) as typeof fetch;
+  const D = (name: string) => new Data({ fetchImpl: mk(name), baseUrl: 'https://api.test' });
+
+  await D('smart').tokenSmartMoney('MINT/1');           // slash must be encoded
+  await D('velocity').tokenVelocity('MINT1');
+  await D('list').tokenList({ limit: 5 });
+  await D('full').tokenFull('MINT1');
+  await D('phist').tokenPriceHistory('MINT1', { limit: 3 });
+
+  assert.equal(seen.smart, 'https://api.test/api/token/MINT%2F1/smart-money');
+  assert.equal(seen.velocity, 'https://api.test/api/token/MINT1/velocity');
+  assert.equal(seen.list, 'https://api.test/api/token/list?limit=5');
+  assert.equal(seen.full, 'https://api.test/api/token/MINT1');
+  assert.equal(seen.phist, 'https://api.test/api/token/MINT1/price/history?limit=3');
+});
+
+test('wallet analytics methods build path-style URLs (encoded)', async () => {
+  const seen: Record<string, string> = {};
+  const mk = (name: string) => (async (u: string) => { seen[name] = u; return jsonResp(200, {}); }) as typeof fetch;
+  const D = (name: string) => new Data({ fetchImpl: mk(name), baseUrl: 'https://api.test' });
+
+  await D('rank').walletRank('WALL1');
+  await D('nwh').walletNetworthHistory('WALL1', { limit: 10 });
+  await D('transfers').walletTransfers('WALL1');
+
+  assert.equal(seen.rank, 'https://api.test/api/wallet/WALL1/rank');
+  assert.equal(seen.nwh, 'https://api.test/api/wallet/WALL1/networth/history?limit=10');
+  assert.equal(seen.transfers, 'https://api.test/api/wallet/WALL1/transfers');
+});

@@ -123,9 +123,78 @@ export class Data {
   tokenTrending() { return this.get('/api/token-trending'); }
   scan(mint: string) { return this.get('/api/scan', { mint }); }
 
+  // ── token analytics (circuit-node, path-style) ─────────────────────────────
+  // The full on-chain analytics suite, fronted on api.circuitllm.xyz at the same
+  // paths the docs advertise. Each is a pay-per-call point read keyed by mint.
+  /** Full token info: on-chain metadata + price + risk (node's `/api/token/:mint`;
+   *  distinct from the aggregated `tokenInfo` flat endpoint). */
+  tokenFull(mint: string) { return this.get(`/api/token/${encodeURIComponent(mint)}`); }
+  /** Paginated token list from the on-chain registry. `limit` ≤ 100. */
+  tokenList(opts: { limit?: number } = {}) { return this.get('/api/token/list', { limit: opts.limit }); }
+  /** Token overview: symbol, supply, price, headline stats. */
+  tokenOverview(mint: string) { return this.get(`/api/token/${encodeURIComponent(mint)}/overview`); }
+  /** Smart-money accumulation/distribution — whale net flow from large (>$500) trades. */
+  tokenSmartMoney(mint: string) { return this.get(`/api/token/${encodeURIComponent(mint)}/smart-money`); }
+  /** Buy/sell pressure + price velocity (score 0–100, BULLISH|NEUTRAL|BEARISH). */
+  tokenMomentum(mint: string) { return this.get(`/api/token/${encodeURIComponent(mint)}/momentum`); }
+  /** Trading velocity: trades/min, trend, avg/median trade size, category. */
+  tokenVelocity(mint: string) { return this.get(`/api/token/${encodeURIComponent(mint)}/velocity`); }
+  /** Lifecycle stage: LAUNCH|EARLY_GROWTH|PEAK|PLATEAU|DECLINING|DORMANT. */
+  tokenLifecycle(mint: string) { return this.get(`/api/token/${encodeURIComponent(mint)}/lifecycle`); }
+  /** Holder concentration risk: Gini/HHI, top-n supply %, risk grade A–F. */
+  tokenConcentrationRisk(mint: string) { return this.get(`/api/token/${encodeURIComponent(mint)}/concentration-risk`); }
+  /** Holder distribution breakdown. */
+  tokenDistribution(mint: string) { return this.get(`/api/token/${encodeURIComponent(mint)}/distribution`); }
+  /** Narrative bucket: MEME|DEFI|AI|GAMING|INFRA|UNKNOWN. */
+  tokenNarrative(mint: string) { return this.get(`/api/token/${encodeURIComponent(mint)}/narrative`); }
+  /** SMA/RSI technical signals + trend + support/resistance. */
+  tokenTechnicalSignals(mint: string) { return this.get(`/api/token/${encodeURIComponent(mint)}/technical-signals`); }
+  /** Dip-reversal entry signal (ENTRY|WATCH|NO_SIGNAL, gate breakdown). */
+  tokenEntry(mint: string) { return this.get(`/api/token/${encodeURIComponent(mint)}/entry`); }
+  /** Wash-trade detection: CLEAN|SUSPICIOUS|HIGH_RISK. */
+  tokenWash(mint: string) { return this.get(`/api/token/${encodeURIComponent(mint)}/wash`); }
+  /** Exit-liquidity estimate — how much can be sold before heavy impact. */
+  tokenExitLiquidity(mint: string) { return this.get(`/api/token/${encodeURIComponent(mint)}/exit-liquidity`); }
+  /** Order-book / pool depth. */
+  tokenDepth(mint: string) { return this.get(`/api/token/${encodeURIComponent(mint)}/depth`); }
+  /** Active DEX markets for the token. */
+  tokenMarkets(mint: string) { return this.get(`/api/token/${encodeURIComponent(mint)}/markets`); }
+  /** Price statistics (highs/lows/changes over recent windows). */
+  tokenPriceStats(mint: string) { return this.get(`/api/token/${encodeURIComponent(mint)}/price-stats`); }
+  /** Mint/burn events for the token. */
+  tokenMintBurn(mint: string) { return this.get(`/api/token/${encodeURIComponent(mint)}/mint-burn`); }
+  /** Token creation details (creator, timestamp, initial config). */
+  tokenCreation(mint: string) { return this.get(`/api/token/${encodeURIComponent(mint)}/creation`); }
+  /** On-chain price history (distinct from the free price-feed `priceHistory`). */
+  tokenPriceHistory(mint: string, opts: { limit?: number } = {}) {
+    return this.get(`/api/token/${encodeURIComponent(mint)}/price/history`, { limit: opts.limit });
+  }
+
   // ── wallet ───────────────────────────────────────────────────────────────
   walletAnalytics(wallet: string) { return this.get('/api/wallet-analytics', { wallet }); }
   walletPnl(wallet: string) { return this.get('/api/wallet-pnl', { wallet }); }
+
+  // ── wallet analytics (circuit-node, path-style) ────────────────────────────
+  /** Wallet skill/leaderboard rank. */
+  walletRank(wallet: string) { return this.get(`/api/wallet/${encodeURIComponent(wallet)}/rank`); }
+  /** Current net worth (SOL + token holdings in USD). */
+  walletNetworth(wallet: string) { return this.get(`/api/wallet/${encodeURIComponent(wallet)}/networth`); }
+  /** Net-worth history over time. `limit` bounds the number of points. */
+  walletNetworthHistory(wallet: string, opts: { limit?: number } = {}) {
+    return this.get(`/api/wallet/${encodeURIComponent(wallet)}/networth/history`, { limit: opts.limit });
+  }
+  /** Trading behaviour profile (style, hold times, win patterns). */
+  walletBehavior(wallet: string) { return this.get(`/api/wallet/${encodeURIComponent(wallet)}/behavior`); }
+  /** Portfolio risk assessment. */
+  walletPortfolioRisk(wallet: string) { return this.get(`/api/wallet/${encodeURIComponent(wallet)}/portfolio-risk`); }
+  /** Alpha signals derived from the wallet's activity. */
+  walletAlphaSignals(wallet: string) { return this.get(`/api/wallet/${encodeURIComponent(wallet)}/alpha-signals`); }
+  /** Recent token transfers in/out. `limit` bounds the number returned. */
+  walletTransfers(wallet: string, opts: { limit?: number } = {}) {
+    return this.get(`/api/wallet/${encodeURIComponent(wallet)}/transfers`, { limit: opts.limit });
+  }
+  /** Recent SOL/token balance changes. */
+  walletBalanceChange(wallet: string) { return this.get(`/api/wallet/${encodeURIComponent(wallet)}/balance-change`); }
 
   // ── market ───────────────────────────────────────────────────────────────
   marketOverview() { return this.get('/api/market-overview'); }

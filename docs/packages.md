@@ -123,8 +123,18 @@ class Data {
   // token
   tokenPrice(mint); tokenPrices(mints); tokenInfo(mint); tokenOhlcv(mint, opts?);
   tokenHolders(mint); tokenSecurity(mint); tokenTopTraders(mint); tokenTrending(); scan(mint);
+  // token analytics suite (circuit-node, path-style)
+  tokenFull(mint); tokenList(opts?); tokenOverview(mint); tokenSmartMoney(mint);
+  tokenMomentum(mint); tokenVelocity(mint); tokenLifecycle(mint); tokenConcentrationRisk(mint);
+  tokenDistribution(mint); tokenNarrative(mint); tokenTechnicalSignals(mint); tokenEntry(mint);
+  tokenWash(mint); tokenExitLiquidity(mint); tokenDepth(mint); tokenMarkets(mint);
+  tokenPriceStats(mint); tokenMintBurn(mint); tokenCreation(mint); tokenPriceHistory(mint, opts?);
   // wallet
   walletAnalytics(wallet); walletPnl(wallet);
+  // wallet analytics suite (circuit-node, path-style)
+  walletRank(wallet); walletNetworth(wallet); walletNetworthHistory(wallet, opts?);
+  walletBehavior(wallet); walletPortfolioRisk(wallet); walletAlphaSignals(wallet);
+  walletTransfers(wallet, opts?); walletBalanceChange(wallet);
   // market / defi / chain
   marketOverview(); marketSentiment(); newTokens();
   defiOverview(); yields(); stakingYields();

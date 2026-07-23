@@ -1,7 +1,7 @@
 {
   "name": "@circuit-llm/vault",
-  "version": "0.2.6",
-  "description": "Circuit SDK vault client \u2014 drive the non-custodial on-chain Agent Vault Anchor program: owner lifecycle, the route-agnostic trade adapter, a Jupiter route source, and makeVaultExecutor (the concrete executor for @circuit-llm/agent's VaultCustody). Opt-in: pulls @anchor-lang/core.",
+  "version": "0.2.7",
+  "description": "Circuit SDK vault client — drive the non-custodial on-chain Agent Vault Anchor program: owner lifecycle, the route-agnostic trade adapter, a Jupiter route source, and makeVaultExecutor (the concrete executor for @circuit-llm/agent's VaultCustody). Opt-in: pulls @anchor-lang/core.",
   "license": "MIT",
   "type": "module",
   "exports": {

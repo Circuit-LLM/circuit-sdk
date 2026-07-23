@@ -1,7 +1,7 @@
 {
   "name": "@circuit-llm/x402",
-  "version": "0.2.6",
-  "description": "Circuit SDK payment spine \u2014 pay any x402 endpoint in CIRC (client) + verify on-chain CIRC payments (server). Zero runtime dependencies.",
+  "version": "0.2.7",
+  "description": "Circuit SDK payment spine — pay any x402 endpoint in CIRC (client) + verify on-chain CIRC payments (server). Zero runtime dependencies.",
   "license": "MIT",
   "type": "module",
   "exports": {
