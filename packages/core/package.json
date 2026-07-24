@@ -1,6 +1,6 @@
 {
   "name": "@circuit-llm/core",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "description": "Circuit SDK core — http client, injectable config, ed25519 identity, shared types.",
   "license": "MIT",
   "type": "module",

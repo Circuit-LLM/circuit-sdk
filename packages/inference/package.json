@@ -1,6 +1,6 @@
 {
   "name": "@circuit-llm/inference",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "description": "Circuit SDK inference — OpenAI-compatible client for the decentralized DLLM mesh, paid per call in CIRC (x402).",
   "license": "MIT",
   "type": "module",
@@ -18,9 +18,9 @@
     "prepack": "tsup src/index.ts --format esm --dts --clean --out-dir dist"
   },
   "dependencies": {
-    "@circuit-llm/attest": "0.2.7",
-    "@circuit-llm/core": "0.2.7",
-    "@circuit-llm/x402": "0.2.7"
+    "@circuit-llm/attest": "0.2.8",
+    "@circuit-llm/core": "0.2.8",
+    "@circuit-llm/x402": "0.2.8"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
