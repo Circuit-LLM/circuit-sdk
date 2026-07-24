@@ -226,6 +226,7 @@ export default {
         { value: 'start', label: `${sym.arrow}  Start an agent` },
         { value: 'stop', label: `${sym.cross}  Stop an agent` },
         { value: 'command', label: `${sym.arrow}  Send a command`, hint: 'change a running agent, live' },
+        { value: 'action', label: `${sym.spark}  Run an action`, hint: 'one-shot command on a running agent' },
         { value: 'withdraw', label: `${sym.spark}  Withdraw funds`, hint: 'pull the agent wallet back to you' },
         { value: 'destroy', label: `${sym.cross}  Delete an agent`, hint: 'stop + remove its record' },
         { value: 'host', label: `${sym.node}  Contribute capacity`, hint: 'lend CPU to the cloud' },
@@ -302,6 +303,19 @@ export default {
             sp.success(`Command queued (seq ${r.seq}) — the agent applies it on its next tick`);
             const st = await agents.commandStatus(pick).catch(() => null);
             if (st) console.log('  ' + c.dim(`applied through seq ${st.ackedSeq} · ${st.pending.length} pending`));
+          } catch (e) { sp.error(e.message); }
+        });
+      } else if (choice === 'action') {
+        const list = (await agents.list()).filter((a) => a.driver === 'cloud');
+        if (!list.length) { await renderList(ctx); continue; }
+        const pick = await menuSelect(c.text('Run an action on which agent?'), list.map((a) => ({ value: a.name, label: `${a.name}  ${c.dim(a.state)}` })));
+        const name = await askText('Action name', { placeholder: 'e.g. scanNow' });
+        if (!name || !name.trim()) continue;
+        await screenFrame({ status: ctx.status, footer: 'press any key to continue' }, async () => {
+          const sp = spinner('Signing + sending…');
+          try {
+            const r = await agents.action(pick, name.trim());
+            sp.success(`Action "${r.action}" queued (seq ${r.seq}) — runs once on the next tick`);
           } catch (e) { sp.error(e.message); }
         });
       } else if (choice === 'destroy') {

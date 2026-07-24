@@ -33,3 +33,16 @@ import { buildSignedCommand, nextSeq } from '../src/services/agent-commands.js';
 }
 
 console.log('command-signing (CLI ↔ agent): OK');
+
+// action commands verify the same way
+{
+  const { buildSignedAction } = await import('../src/services/agent-commands.js');
+  const owner2 = Keypair.generate();
+  const pub2 = Buffer.from(owner2.publicKey.toBytes()).toString('hex');
+  const act = buildSignedAction('agent-1', 'scanNow', { limit: 5 }, { keypair: owner2, seq: 3, now: () => 1000 });
+  const assert2 = (await import('node:assert')).default;
+  assert2.equal(act.type, 'action');
+  assert2.deepEqual(act.payload, { action: 'scanNow', args: { limit: 5 } });
+  assert2.equal(verifyCommand(pub2, act), true, 'CLI-signed action verifies at the agent');
+  console.log('command-signing action: OK');
+}

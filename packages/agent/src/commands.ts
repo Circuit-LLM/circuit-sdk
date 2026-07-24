@@ -82,3 +82,26 @@ export function acceptConfigPatch(
   if (bad.length) return { ok: false, reason: `out-of-schema:${bad.join(',')}` };
   return { ok: true };
 }
+
+/** The accept decision for an imperative action (Phase 2). Same gate as a config-patch —
+ *  structural → signature → freshness → replay fence — but scope is an ALLOWLIST OF ACTION
+ *  NAMES (`payload.action`) rather than config keys. The caller runs this once-only and
+ *  at-most-once (commit the fence + an 'attempted' ack BEFORE the side effect). */
+export function acceptAction(
+  c: Command,
+  opts: { ownerPubkeyHex: string; now: number; fence: FenceState; actions: string[] },
+): AcceptResult {
+  if (!c || typeof c !== 'object') return { ok: false, reason: 'malformed' };
+  if (c.type !== 'action') return { ok: false, reason: 'not-action' };
+  if (typeof c.seq !== 'number' || !c.id || typeof c.payload !== 'object' || c.payload === null) {
+    return { ok: false, reason: 'malformed' };
+  }
+  if (!verifyCommand(opts.ownerPubkeyHex, c)) return { ok: false, reason: 'bad-signature' };
+  if (typeof c.expiresAt !== 'number' || opts.now >= c.expiresAt) return { ok: false, reason: 'expired' };
+  if (c.seq <= opts.fence.lastSeq) return { ok: false, reason: 'replayed-seq' };
+  if (opts.fence.seenIds.has(c.id)) return { ok: false, reason: 'replayed-id' };
+  const action = (c.payload as { action?: unknown }).action;
+  if (typeof action !== 'string' || !action) return { ok: false, reason: 'no-action-name' };
+  if (!opts.actions.includes(action)) return { ok: false, reason: `action-not-allowed:${action}` };
+  return { ok: true };
+}

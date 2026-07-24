@@ -11,23 +11,25 @@ import * as cloud from './drivers/cloud.js';
 
 const DEFAULT_TTL_MS = 10 * 60 * 1000; // a command the agent hasn't applied in 10m expires
 
-/** Build + sign a config-patch command. `keypair` and `now` are injectable for tests;
+/** Build + sign a command of a given type. `keypair` and `now` are injectable for tests;
  *  they default to the CLI wallet and the wall clock. Throws if no wallet is loaded. */
-export function buildSignedCommand(agentId, payload, { keypair, seq, ttlMs = DEFAULT_TTL_MS, now = Date.now } = {}) {
+function buildSigned(agentId, type, payload, { keypair, seq, ttlMs = DEFAULT_TTL_MS, now = Date.now } = {}) {
   const kp = keypair ?? loadKeypair();
   if (!kp) throw new Error('no owner wallet loaded — set CIRCUIT_WALLET or a keystore to sign commands');
   const seedHex = Buffer.from(kp.secretKey.slice(0, 32)).toString('hex');
   const createdAt = now();
-  const fields = {
-    agentId,
-    seq,
-    id: randomUUID(),
-    type: 'config-patch',
-    payload,
-    createdAt,
-    expiresAt: createdAt + ttlMs,
-  };
+  const fields = { agentId, seq, id: randomUUID(), type, payload, createdAt, expiresAt: createdAt + ttlMs };
   return { ...fields, ownerSig: signCommand(seedHex, fields) };
+}
+
+/** A config-patch command (declarative, idempotent). */
+export function buildSignedCommand(agentId, payload, opts = {}) {
+  return buildSigned(agentId, 'config-patch', payload, opts);
+}
+
+/** An imperative action command (once-only). `payload = { action, args? }`. */
+export function buildSignedAction(agentId, action, args, opts = {}) {
+  return buildSigned(agentId, 'action', { action, ...(args !== undefined ? { args } : {}) }, opts);
 }
 
 /** The next monotonic seq for an agent: strictly above anything the CP has seen (acked,
@@ -48,6 +50,15 @@ export async function sendConfigPatch(name, meta, payload, opts = {}) {
   const command = buildSignedCommand(meta.id, payload, { ...opts, seq });
   const res = await cloud.sendCommand(name, meta, command);
   return { ...res, seq, id: command.id };
+}
+
+/** Send an imperative action to a cloud agent (once-only at the agent). */
+export async function sendAction(name, meta, action, args, opts = {}) {
+  const status = await cloud.commandStatus(name, meta).catch(() => null);
+  const seq = nextSeq(status);
+  const command = buildSignedAction(meta.id, action, args, { ...opts, seq });
+  const res = await cloud.sendCommand(name, meta, command);
+  return { ...res, seq, id: command.id, action };
 }
 
 /** Read the command status (pending / applied / rejected / expired) the owner can see. */

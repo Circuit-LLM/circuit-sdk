@@ -28,7 +28,7 @@ import {
 } from './types.ts';
 import { type Custody, LocalKeypairCustody, MockCustody, SignerCustody, type TradeExecutor, type SellOpts } from './custody.ts';
 import { evaluateRule, type Evidence, type Rule, type RuleInputs, type VerifiedIntent } from '@circuit-llm/attest';
-import { acceptConfigPatch, verifyCommand, type Command, type FenceState } from './commands.ts';
+import { acceptConfigPatch, acceptAction, type Command, type FenceState } from './commands.ts';
 
 /** Per-command ack the agent stages for the node-host to relay to the control plane. */
 type CommandAcks = Record<string, { seq: number; result: string; reason?: string; at: number }>;
@@ -197,8 +197,17 @@ export abstract class CircuitAgent {
     return Object.keys(this.config ?? {});
   }
 
-  /** Handle a non-config-patch (action) command. Phase 1 default: reject. Override in a
-   *  Phase 2 type to support one-shot actions (still fenced + signature-checked upstream). */
+  /** Action names an owner may invoke via an `action` command (Phase 2). Default: none, so a
+   *  type is opt-in. Override alongside onCommand() to expose one-shot actions, e.g.
+   *  `return ['scanNow'];`. The base checks `payload.action` against this allowlist. */
+  protected commandActions(): string[] {
+    return [];
+  }
+
+  /** Perform an allow-listed action command (Phase 2). Called at most once per command — the
+   *  base commits the replay fence and persists an 'attempted' ack BEFORE this runs, so a crash
+   *  mid-action is never retried. Return { applied } to report the outcome; throwing is caught
+   *  and recorded as failed. Default: reject (a type with no actions never gets here). */
   protected async onCommand(_cmd: Command): Promise<{ applied: boolean; reason?: string }> {
     return { applied: false, reason: 'actions-not-supported' };
   }
@@ -261,55 +270,62 @@ export abstract class CircuitAgent {
 
     let changed = false;
     for (const cmd of cmds) {
-      if (this.cmdAcks[cmd.id]) continue; // already handled → its ack is staged for relay
-      let result: { applied: boolean; reason?: string };
+      if (this.cmdAcks[cmd.id]) continue; // already handled (incl. a crash-time 'attempted') → skip
+
+      // ── config-patch: idempotent, latest-wins ──
       if (cmd.type === 'config-patch') {
         const r = acceptConfigPatch(cmd, {
-          ownerPubkeyHex,
-          now: this.now(),
-          fence: this.cmdFence,
-          schemaKeys: this.commandSchemaKeys(),
+          ownerPubkeyHex, now: this.now(), fence: this.cmdFence, schemaKeys: this.commandSchemaKeys(),
         });
         if (r.ok) {
           this.config = { ...this.config, ...(cmd.payload as Record<string, unknown>) };
-          try {
-            this.fs.writeFileSync(this.configFile, JSON.stringify(this.config));
-          } catch {
-            /* config persist best-effort */
-          }
+          try { this.fs.writeFileSync(this.configFile, JSON.stringify(this.config)); } catch { /* best-effort */ }
           this.cmdFence.lastSeq = Math.max(this.cmdFence.lastSeq, cmd.seq);
           this.cmdFence.seenIds.add(cmd.id);
           this.commandsApplied++;
           this.log(`command applied: seq=${cmd.seq} patch=${Object.keys(cmd.payload).join(',')}`);
-          result = { applied: true };
+          this.cmdAcks[cmd.id] = { seq: cmd.seq, result: 'applied', at: this.now() };
         } else {
           this.commandsRejected++;
           this.log(`command rejected: seq=${cmd.seq} reason=${r.reason}`);
-          result = { applied: false, reason: r.reason };
+          this.cmdAcks[cmd.id] = { seq: cmd.seq, result: 'rejected', reason: r.reason, at: this.now() };
         }
-      } else {
-        // Non-config-patch (action): the signature + freshness + fence still gate it before
-        // it reaches the strategy's onCommand handler.
-        if (!verifyCommand(ownerPubkeyHex, cmd)) result = { applied: false, reason: 'bad-signature' };
-        else if (this.now() >= cmd.expiresAt) result = { applied: false, reason: 'expired' };
-        else if (cmd.seq <= this.cmdFence.lastSeq) result = { applied: false, reason: 'replayed-seq' };
-        else {
-          result = await this.onCommand(cmd);
-          if (result.applied) {
-            this.cmdFence.lastSeq = Math.max(this.cmdFence.lastSeq, cmd.seq);
-            this.cmdFence.seenIds.add(cmd.id);
-            this.commandsApplied++;
-          } else {
-            this.commandsRejected++;
-          }
-        }
+        changed = true;
+        continue;
       }
-      this.cmdAcks[cmd.id] = {
-        seq: cmd.seq,
-        result: result.applied ? 'applied' : 'rejected',
-        reason: result.reason,
-        at: this.now(),
-      };
+
+      // ── action: once-only, at-most-once ──
+      if (cmd.type === 'action') {
+        const r = acceptAction(cmd, {
+          ownerPubkeyHex, now: this.now(), fence: this.cmdFence, actions: this.commandActions(),
+        });
+        if (!r.ok) {
+          this.commandsRejected++;
+          this.log(`action rejected: seq=${cmd.seq} reason=${r.reason}`);
+          this.cmdAcks[cmd.id] = { seq: cmd.seq, result: 'rejected', reason: r.reason, at: this.now() };
+          changed = true;
+          continue;
+        }
+        // AT-MOST-ONCE (docs/COMMAND_INBOX.md §6, §12): commit the fence + an 'attempted' ack and
+        // persist BEFORE the side effect. A crash during onCommand then leaves the id resolved (it's
+        // skipped on restart), so a one-shot action is never executed twice — we drop on any doubt.
+        this.cmdFence.lastSeq = Math.max(this.cmdFence.lastSeq, cmd.seq);
+        this.cmdFence.seenIds.add(cmd.id);
+        this.cmdAcks[cmd.id] = { seq: cmd.seq, result: 'attempted', at: this.now() };
+        this.persistCommandState();
+        let outcome: { applied: boolean; reason?: string };
+        try { outcome = await this.onCommand(cmd); }
+        catch (e) { outcome = { applied: false, reason: `action-threw:${(e as Error).message}` }; }
+        if (outcome.applied) this.commandsApplied++; else this.commandsRejected++;
+        this.cmdAcks[cmd.id] = { seq: cmd.seq, result: outcome.applied ? 'applied' : 'failed', reason: outcome.reason, at: this.now() };
+        this.log(`action ${outcome.applied ? 'applied' : 'failed'}: seq=${cmd.seq}${outcome.reason ? ' ' + outcome.reason : ''}`);
+        changed = true;
+        continue;
+      }
+
+      // ── unknown type ──
+      this.commandsRejected++;
+      this.cmdAcks[cmd.id] = { seq: cmd.seq, result: 'rejected', reason: `unknown-type:${cmd.type}`, at: this.now() };
       changed = true;
     }
     if (changed) this.persistCommandState();

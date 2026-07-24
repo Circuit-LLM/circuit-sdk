@@ -13,6 +13,7 @@ import { MockCustody } from '../src/custody.ts';
 import { generateAttestSigner } from '@circuit-llm/attest';
 import { signCommand, type Command, type CommandSigningFields } from '../src/commands.ts';
 // The REAL control-plane queue — same code the mesh runs (see command-inbox.test.mjs).
+// @ts-ignore — cross-repo JS module (no types); intentional in this integration test
 import { Store } from '../../../../circuit-agent-cloud/lib/store.js';
 
 const owner = generateAttestSigner();
