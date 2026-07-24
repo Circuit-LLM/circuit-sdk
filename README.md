@@ -18,7 +18,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178c6)](https://www.typescriptlang.org)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D22-brightgreen)](https://nodejs.org)
 [![Python](https://img.shields.io/badge/python-%3E%3D3.10-3776ab)](https://www.python.org)
-[![Tests](https://img.shields.io/badge/tests-191%20passing-success)](#testing)
+[![Tests](https://img.shields.io/badge/tests-259%20passing-success)](#testing)
 [![Status](https://img.shields.io/badge/status-beta-orange)](#status--roadmap)
 
 > **Beta software.** The Circuit SDK is under active development. Expect breaking changes between releases, incomplete features, and rough edges. Agents move real value (trades + x402 payments) — use small amounts until you're comfortable with how it behaves.
@@ -40,7 +40,7 @@ Circuit is a network of decentralized, pay-per-use primitives: a contributor-own
 It's layered, and **an agent composes the whole stack** — it *thinks* (inference), *senses* (data), *acts* (custody), and *lives* somewhere (hosting):
 
 - **Inference** — stream the decentralized 72B with an OpenAI-compatible client; pay per call, automatically.
-- **Data** — 40+ typed market & on-chain endpoints (token price, wallet analytics, security, DeFi, real-time price feed, …) — full data-API coverage, with a generic `get()` escape hatch for anything new.
+- **Data** — 70+ typed market & on-chain endpoints (token price, wallet analytics, security, DeFi, real-time price feed, …) — full data-API coverage, with a generic `get()` escape hatch for anything new.
 - **Wallet** — SOL + CIRC (Token-2022) balances, transfers, and Jupiter swaps.
 - **x402** — the payment spine: turn any `402 Payment Required` into an on-chain CIRC micropayment + retry. No accounts, no API keys — **a wallet is the account and the meter.**
 - **Agents** — write a `CircuitAgent`, implement `tick()`, and it runs on a stranger's CPU where **funds can't be stolen**: the signing key is off-box and the only verbs are `buy`/`sell` within your policy.
@@ -143,9 +143,9 @@ One npm workspace of scoped packages (`@circuit-llm/sdk` re-exports them all), p
 |---------|--------------|------------|
 | **`@circuit-llm/x402`** | The payment spine — pay any x402 endpoint in CIRC; verify payments server-side. **Zero deps.** | — |
 | **`@circuit-llm/core`** | http · injectable config · ed25519 identity · owner-auth (per-owner control-plane request signing) · shared types. **Zero deps.** | — |
-| **`@circuit-llm/inference`** | OpenAI-compatible client for the DLLM mesh (`chat`, `chatStream`, `listModels`), paid per call in CIRC (x402). | core · x402 |
+| **`@circuit-llm/inference`** | OpenAI-compatible client for the DLLM mesh (`chat`, `chatStream`, `listModels`), paid per call in CIRC (x402). | core · x402 · attest |
 | **`@circuit-llm/models`** | Client for the [circuitllm.xyz/models](https://circuitllm.xyz/models) gateway — buy prepaid credits (USDC/SOL/CIRC), mint a `sk-circuit-` key, call the metered OpenAI-compatible chat API. | core · wallet |
-| **`@circuit-llm/data`** | Typed client for 40+ Circuit Data API endpoints — full coverage (free + paid), with a generic `get()` escape hatch. | core · x402 |
+| **`@circuit-llm/data`** | Typed client for 70+ Circuit Data API endpoints — full coverage (free + paid), with a generic `get()` escape hatch. | core · x402 · attest |
 | **`@circuit-llm/wallet`** | SOL/CIRC balances, transfers, Jupiter swaps (multi-RPC failover); implements `PaymentWallet`; `walletTradeExecutor` drives self-custody agent trading. | core · x402 · solana |
 | **`@circuit-llm/agent`** | **The agent runtime** — `CircuitAgent` base class + four custody modes (paper · self-custody · off-box signer · non-custodial vault) + verified-intent mode + scaffold. | core · inference · data · attest |
 | **`@circuit-llm/attest`** | **[Verified Intents](docs/verified-intents.md)** — sign/verify evidence, the rule DSL + evaluator, and the signer's decision gate. **Zero deps** (beyond core). | core |
@@ -169,11 +169,12 @@ Don't want to write code? The interactive **`circuit`** console ships in this re
 npm install && npm run build && npm run cli   # then: npm link -w apps/cli  to put `circuit` on your PATH
 ```
 
-Nine modules, all live; read-only ones need no wallet:
+Ten modules, all live; read-only ones need no wallet:
 
 | Module | What it does | Wallet |
 |--------|--------------|:------:|
 | `chat` | Stream the decentralized 72B, paid per call in CIRC (x402) | required |
+| `models` | Buy prepaid credits (USDC/SOL/CIRC), mint an `sk-circuit-` key, metered OpenAI-compatible chat | required |
 | `wallet` | SOL + CIRC balances, transfers, Jupiter swaps | required |
 | `agent` | Create, run & host agents (local or the mesh) over off-box custody | optional |
 | `data` · `swarm` · `network` · `node` · `status` · `about` | Market data + charts · swarm signals · network health · GPU onboarding · dashboard + `doctor` · about | — |
@@ -285,10 +286,10 @@ circuit-py/  Python consume client (inference + data + x402)
 
 ```bash
 npm install
-npm test            # 196 TS tests, zero-transpile
+npm test            # 241 TS tests, zero-transpile
 npm run typecheck   # tsc --noEmit, all 14 packages
 npm run build       # tsup → dist/*.js + .d.ts (publishing)
-cd circuit-py && python3 -m unittest discover -s tests   # 12 Python tests
+cd circuit-py && python3 -m unittest discover -s tests   # 18 Python tests
 ```
 
 Design principles, the dependency graph, and the build model are in **[docs/architecture.md](docs/architecture.md)**.
@@ -297,7 +298,7 @@ Design principles, the dependency graph, and the build model are in **[docs/arch
 
 ## Status & roadmap
 
-**Beta.** All fourteen TypeScript packages + the `circuit` CLI (in `apps/cli`) + the Python client are built, extracted faithfully from the live ecosystem, and covered by **208 tests** (196 TS + 12 Python), all typecheck-clean. The **[`@circuit-llm/mcp`](https://github.com/Circuit-LLM/MCP)** server lives in its own repo and builds on the published packages. The CLI lives in the monorepo and consumes `@circuit-llm/*` directly, so the SDK is the single source for the shared logic (bundle codec, wallet, owner-auth). The full roadmap — spine → consume → agents → contributor → extended (bundles · vault · on-chain control-plane reads) — is complete.
+**Beta.** All fourteen TypeScript packages + the `circuit` CLI (in `apps/cli`) + the Python client are built, extracted faithfully from the live ecosystem, and covered by **259 tests** (241 TS + 18 Python), all typecheck-clean. The **[`@circuit-llm/mcp`](https://github.com/Circuit-LLM/MCP)** server lives in its own repo and builds on the published packages. The CLI lives in the monorepo and consumes `@circuit-llm/*` directly, so the SDK is the single source for the shared logic (bundle codec, wallet, owner-auth). The full roadmap — spine → consume → agents → contributor → extended (bundles · vault · on-chain control-plane reads) — is complete.
 
 Working today: paid inference and data, CIRC wallet operations, the `CircuitAgent` runtime across the full custody spectrum (paper, self-custody, off-box signer, and the on-chain vault client), the mesh and registry clients, and on-chain stake reads. Planned: streaming and a native Solana `PaymentWallet` for the Python client.
 
