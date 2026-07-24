@@ -28,6 +28,10 @@ import {
 } from './types.ts';
 import { type Custody, LocalKeypairCustody, MockCustody, SignerCustody, type TradeExecutor, type SellOpts } from './custody.ts';
 import { evaluateRule, type Evidence, type Rule, type RuleInputs, type VerifiedIntent } from '@circuit-llm/attest';
+import { acceptConfigPatch, verifyCommand, type Command, type FenceState } from './commands.ts';
+
+/** Per-command ack the agent stages for the node-host to relay to the control plane. */
+type CommandAcks = Record<string, { seq: number; result: string; reason?: string; at: number }>;
 
 /** The slice of fs the agent uses — injectable for tests. */
 export interface FsLike {
@@ -100,6 +104,15 @@ export abstract class CircuitAgent {
   private readonly logFile: string;
   private readonly hbFile: string;
   private readonly configFile: string;
+  // Command Inbox (docs/COMMAND_INBOX.md): node-host writes commandsFile, agent writes
+  // commandAcksFile (node-host relays), fence+acks persisted in commandStateFile.
+  private readonly commandsFile: string;
+  private readonly commandAcksFile: string;
+  private readonly commandStateFile: string;
+  private cmdFence: FenceState = { lastSeq: 0, seenIds: new Set() };
+  private cmdAcks: CommandAcks = {};
+  protected commandsApplied = 0;
+  protected commandsRejected = 0;
   private readonly started: number;
   private intervalMs: number;
   private running = false;
@@ -144,6 +157,9 @@ export abstract class CircuitAgent {
     this.logFile = join(this.ctx.dataDir, 'agent.log');
     this.hbFile = join(this.ctx.dataDir, 'heartbeat.json');
     this.configFile = join(this.ctx.dataDir, 'config.json');
+    this.commandsFile = join(this.ctx.dataDir, 'commands.json');
+    this.commandAcksFile = join(this.ctx.dataDir, 'command-acks.json');
+    this.commandStateFile = join(this.ctx.dataDir, 'command-state.json');
     this.started = this.now();
     this.intervalMs = opts.intervalMs ?? 0;
   }
@@ -172,6 +188,131 @@ export abstract class CircuitAgent {
     } catch {
       return this.config as T;
     }
+  }
+
+  // ── Command Inbox (docs/COMMAND_INBOX.md) ────────────────────────────────────
+  /** Keys an owner may set via a config-patch command. Default: the current config knobs.
+   *  Override to widen or narrow the sealed "world" a command can touch. */
+  protected commandSchemaKeys(): string[] {
+    return Object.keys(this.config ?? {});
+  }
+
+  /** Handle a non-config-patch (action) command. Phase 1 default: reject. Override in a
+   *  Phase 2 type to support one-shot actions (still fenced + signature-checked upstream). */
+  protected async onCommand(_cmd: Command): Promise<{ applied: boolean; reason?: string }> {
+    return { applied: false, reason: 'actions-not-supported' };
+  }
+
+  private loadCommandState(): void {
+    try {
+      const s = JSON.parse(this.fs.readFileSync(this.commandStateFile, 'utf8')) as {
+        lastSeq?: number;
+        seenIds?: string[];
+        acks?: CommandAcks;
+      };
+      this.cmdFence = { lastSeq: Number(s.lastSeq) || 0, seenIds: new Set(s.seenIds ?? []) };
+      this.cmdAcks = s.acks ?? {};
+    } catch {
+      /* fresh — no prior command state */
+    }
+  }
+
+  private persistCommandState(): void {
+    const entries = Object.entries(this.cmdAcks);
+    if (entries.length > 200) this.cmdAcks = Object.fromEntries(entries.slice(-200)); // cap
+    try {
+      this.fs.writeFileSync(
+        this.commandStateFile,
+        JSON.stringify({
+          lastSeq: this.cmdFence.lastSeq,
+          seenIds: [...this.cmdFence.seenIds].slice(-200),
+          acks: this.cmdAcks,
+        }),
+      );
+      // The relay surface the node-host reads and forwards to the control plane.
+      this.fs.writeFileSync(
+        this.commandAcksFile,
+        JSON.stringify({
+          acks: Object.entries(this.cmdAcks).map(([id, a]) => ({ id, seq: a.seq, result: a.result, reason: a.reason })),
+        }),
+      );
+    } catch {
+      /* best-effort — a lost ack is re-derived next drain (idempotent) */
+    }
+  }
+
+  /** Apply any pending owner commands the node-host has delivered. Pull-only, owner-signed,
+   *  replay-fenced, scope-limited. NEVER throws — a bad command is rejected with a reason the
+   *  owner can see, and the core loop continues. Called at the top of each tick. */
+  async drainCommands(): Promise<void> {
+    let doc: { ownerPubkeyHex?: string | null; commands?: Command[] };
+    try {
+      doc = JSON.parse(this.fs.readFileSync(this.commandsFile, 'utf8'));
+    } catch {
+      return; // no inbox file yet → nothing to do
+    }
+    const ownerPubkeyHex = doc.ownerPubkeyHex ?? null;
+    const cmds = Array.isArray(doc.commands) ? [...doc.commands].sort((a, b) => a.seq - b.seq) : [];
+    if (!cmds.length) return;
+    if (!ownerPubkeyHex) {
+      this.log('command inbox: no owner pubkey provisioned — ignoring commands');
+      return;
+    }
+
+    let changed = false;
+    for (const cmd of cmds) {
+      if (this.cmdAcks[cmd.id]) continue; // already handled → its ack is staged for relay
+      let result: { applied: boolean; reason?: string };
+      if (cmd.type === 'config-patch') {
+        const r = acceptConfigPatch(cmd, {
+          ownerPubkeyHex,
+          now: this.now(),
+          fence: this.cmdFence,
+          schemaKeys: this.commandSchemaKeys(),
+        });
+        if (r.ok) {
+          this.config = { ...this.config, ...(cmd.payload as Record<string, unknown>) };
+          try {
+            this.fs.writeFileSync(this.configFile, JSON.stringify(this.config));
+          } catch {
+            /* config persist best-effort */
+          }
+          this.cmdFence.lastSeq = Math.max(this.cmdFence.lastSeq, cmd.seq);
+          this.cmdFence.seenIds.add(cmd.id);
+          this.commandsApplied++;
+          this.log(`command applied: seq=${cmd.seq} patch=${Object.keys(cmd.payload).join(',')}`);
+          result = { applied: true };
+        } else {
+          this.commandsRejected++;
+          this.log(`command rejected: seq=${cmd.seq} reason=${r.reason}`);
+          result = { applied: false, reason: r.reason };
+        }
+      } else {
+        // Non-config-patch (action): the signature + freshness + fence still gate it before
+        // it reaches the strategy's onCommand handler.
+        if (!verifyCommand(ownerPubkeyHex, cmd)) result = { applied: false, reason: 'bad-signature' };
+        else if (this.now() >= cmd.expiresAt) result = { applied: false, reason: 'expired' };
+        else if (cmd.seq <= this.cmdFence.lastSeq) result = { applied: false, reason: 'replayed-seq' };
+        else {
+          result = await this.onCommand(cmd);
+          if (result.applied) {
+            this.cmdFence.lastSeq = Math.max(this.cmdFence.lastSeq, cmd.seq);
+            this.cmdFence.seenIds.add(cmd.id);
+            this.commandsApplied++;
+          } else {
+            this.commandsRejected++;
+          }
+        }
+      }
+      this.cmdAcks[cmd.id] = {
+        seq: cmd.seq,
+        result: result.applied ? 'applied' : 'rejected',
+        reason: result.reason,
+        at: this.now(),
+      };
+      changed = true;
+    }
+    if (changed) this.persistCommandState();
   }
 
   /** Append a line to <dataDir>/agent.log (the node-host tails it) + stdout. */
@@ -243,6 +384,9 @@ export abstract class CircuitAgent {
       custody: this.custody.kind,
       address: this.ctx.address ?? undefined,
       signedTrades: this.signedTrades,
+      commandsApplied: this.commandsApplied,
+      commandsRejected: this.commandsRejected,
+      lastCmdSeq: this.cmdFence.lastSeq,
       ...this.heartbeatExtra(),
     };
     try {
@@ -261,6 +405,7 @@ export abstract class CircuitAgent {
       /* best-effort */
     }
     this.readConfig();
+    this.loadCommandState();
     if (!this.intervalMs) this.intervalMs = Number(this.config.scanIntervalMs) || 5000;
     this.log(
       `agent up — name=${this.ctx.name} custody=${this.custody.kind} paper=${this.ctx.paper}` +
@@ -276,6 +421,7 @@ export abstract class CircuitAgent {
     if (!this.running || this.busy) return;
     this.busy = true;
     try {
+      await this.drainCommands(); // apply owner commands before the strategy runs this tick
       this.scans++;
       await this.tick();
       this.heartbeat('running');
