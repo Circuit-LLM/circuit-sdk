@@ -95,6 +95,33 @@ test('rejects an out-of-schema patch with reason (scope allowlist)', async () =>
   assert.match(acks[0].reason, /^out-of-schema:maxDailySol$/);
 });
 
+test('commandSchemaKeys() override narrows the sealed world below the config keys (the Scout pattern)', async () => {
+  // A type can override commandSchemaKeys() to allow only a deliberate subset — even keys that
+  // exist in config (here useDllm) are rejected unless whitelisted. This is exactly how Scout
+  // pins its live-tunable knobs and keeps model/webhookUrl restart-only.
+  class ScopedBot extends CircuitAgent {
+    async tick(): Promise<void> {}
+    protected commandSchemaKeys(): string[] { return ['topN']; } // narrower than Object.keys(config)
+  }
+  const fs = new MemFs();
+  fs.files.set('/data/config.json', JSON.stringify({ topN: 3, useDllm: true }));
+  const allow = cmd({ id: 'ok', payload: { topN: 9 } });
+  const deny = cmd({ id: 'no', seq: 2, payload: { useDllm: false } }); // in config, NOT in the allowlist
+  fs.files.set('/data/commands.json', JSON.stringify({ ownerPubkeyHex: owner.pubkey, commands: [allow, deny] }));
+  const bot = new ScopedBot({
+    context: { dataDir: '/data', name: 'scoped' }, custody: new MockCustody({ now: () => 0 }),
+    fs, now: () => NOW, onExit: () => {}, print: () => {},
+  });
+  await bot.start();
+  await bot.runTick();
+  const cfg = JSON.parse(fs.files.get('/data/config.json')!);
+  assert.equal(cfg.topN, 9, 'whitelisted knob applied');
+  assert.equal(cfg.useDllm, true, 'non-whitelisted key untouched');
+  const acks = JSON.parse(fs.files.get('/data/command-acks.json')!).acks;
+  assert.equal(acks.find((a: any) => a.id === 'ok').result, 'applied');
+  assert.match(acks.find((a: any) => a.id === 'no').reason, /^out-of-schema:useDllm$/);
+});
+
 test('no owner pubkey provisioned → commands ignored (no acks, no apply)', async () => {
   const { bot, fs } = makeBot([cmd({})], null);
   await bot.start();
