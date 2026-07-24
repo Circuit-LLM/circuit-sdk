@@ -94,3 +94,11 @@ export async function logs(_name, meta, { tail = 20 } = {}) {
 export async function destroy(_name, meta, { force = false } = {}) {
   await api('DELETE', `/v1/agents/${meta.id}${force ? '?force=1' : ''}`);
 }
+
+// ── Command Inbox (docs/COMMAND_INBOX.md) — owner→agent control ──
+export async function sendCommand(_name, meta, command) {
+  return api('POST', `/v1/agents/${meta.id}/commands`, { command });
+}
+export async function commandStatus(_name, meta) {
+  return api('GET', `/v1/agents/${meta.id}/commands/status`);
+}

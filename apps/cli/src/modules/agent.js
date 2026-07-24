@@ -225,6 +225,7 @@ export default {
         { value: 'deploy', label: `${sym.node}  Deploy to Mesh`, hint: 'publish a local folder to the cloud' },
         { value: 'start', label: `${sym.arrow}  Start an agent` },
         { value: 'stop', label: `${sym.cross}  Stop an agent` },
+        { value: 'command', label: `${sym.arrow}  Send a command`, hint: 'change a running agent, live' },
         { value: 'withdraw', label: `${sym.spark}  Withdraw funds`, hint: 'pull the agent wallet back to you' },
         { value: 'destroy', label: `${sym.cross}  Delete an agent`, hint: 'stop + remove its record' },
         { value: 'host', label: `${sym.node}  Contribute capacity`, hint: 'lend CPU to the cloud' },
@@ -283,6 +284,25 @@ export default {
         await screenFrame({ status: ctx.status, footer: 'press any key to continue' }, async () => {
           const sp = spinner(`${choice}…`);
           try { await agents[choice](pick); sp.success(`${pick} ${choice === 'start' ? 'started' : 'stopped'}`); } catch (e) { sp.error(e.message); }
+        });
+      } else if (choice === 'command') {
+        const list = (await agents.list()).filter((a) => a.driver === 'cloud');
+        if (!list.length) { await renderList(ctx); continue; }
+        const pick = await menuSelect(c.text('Command which agent?'), list.map((a) => ({ value: a.name, label: `${a.name}  ${c.dim(a.state)}` })));
+        const kv = await askText('Config change (key=value)', { placeholder: 'e.g. topN=8  ·  paused=true' });
+        if (!kv || !kv.includes('=')) continue;
+        const [k, ...rest] = kv.split('=');
+        const raw = rest.join('=').trim();
+        const value = raw === 'true' ? true : raw === 'false' ? false : Number.isFinite(Number(raw)) && raw !== '' ? Number(raw) : raw;
+        const patch = { [k.trim()]: value };
+        await screenFrame({ status: ctx.status, footer: 'press any key to continue' }, async () => {
+          const sp = spinner('Signing + sending…');
+          try {
+            const r = await agents.command(pick, patch);
+            sp.success(`Command queued (seq ${r.seq}) — the agent applies it on its next tick`);
+            const st = await agents.commandStatus(pick).catch(() => null);
+            if (st) console.log('  ' + c.dim(`applied through seq ${st.ackedSeq} · ${st.pending.length} pending`));
+          } catch (e) { sp.error(e.message); }
         });
       } else if (choice === 'destroy') {
         const list = await agents.list();

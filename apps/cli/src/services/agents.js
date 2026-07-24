@@ -7,6 +7,7 @@ import { spawn } from 'node:child_process';
 import { config, HOME_DIR } from '../config.js';
 import * as local from './drivers/local.js';
 import * as cloud from './drivers/cloud.js';
+import { sendConfigPatch, commandStatus as cmdStatus } from './agent-commands.js';
 
 const AGENTS_DIR = path.join(HOME_DIR, 'agents');
 const HOST_CFG = path.join(HOME_DIR, 'host.json');
@@ -201,4 +202,16 @@ export const agents = {
       return { via: 'local', running: false };
     },
   },
+
+  // ── Command Inbox (docs/COMMAND_INBOX.md) — owner→agent control (cloud agents only) ──
+  command: (name, patch, opts) =>
+    withMeta(name, (m) => {
+      if (m.driver !== 'cloud') throw new Error('commands target cloud (mesh) agents — a local agent is controlled directly');
+      return sendConfigPatch(name, m, patch, opts);
+    }),
+  commandStatus: (name) =>
+    withMeta(name, (m) => {
+      if (m.driver !== 'cloud') throw new Error('commands target cloud (mesh) agents');
+      return cmdStatus(name, m);
+    }),
 };
